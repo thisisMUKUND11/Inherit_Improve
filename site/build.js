@@ -451,6 +451,36 @@ main{min-width:0;padding:0 0 80px}
   .prose h2{margin-top:42px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+
+/* print -----------------------------------------------------------------
+   Ctrl/Cmd-P produces all four documents as one paginated PDF, whichever
+   panel happens to be open. The tab behaviour is a convenience for reading
+   on screen; it should not decide what ends up on paper. */
+@media print{
+  :root{--paper:#fff;--ink:#000;--muted:#333;--faint:#555;--line:#bbb;--line-soft:#ddd;
+    --panel:#fff;--panel-2:#f2f2f2;--accent:#7a4a10;--accent-soft:#f7f2ea;
+    --code-bg:#f4f4f4;--code-ink:#000}
+  .rail,.skip,.anchor,.repo-line{display:none!important}
+  .layout{display:block}
+  main{padding:0}
+  body{font-size:10.5pt;line-height:1.5}
+  .panel,.panel[hidden]{display:block!important;max-width:none;padding:0 0 18pt}
+  .panel+.panel{page-break-before:always;break-before:page}
+  .hero h1{font-size:30pt}
+  .standfirst{font-size:12pt}
+  .cards{display:none}
+  .prose{font-size:10.5pt}
+  .prose h1{font-size:20pt}
+  .prose h2{font-size:14pt;page-break-after:avoid;break-after:avoid}
+  .prose h3{font-size:11.5pt;page-break-after:avoid;break-after:avoid}
+  .prose pre.code,.table-wrap,.stat,.callout,.prose blockquote{page-break-inside:avoid;break-inside:avoid}
+  .prose pre.code{font-size:8.4pt;white-space:pre-wrap;word-break:break-word}
+  .table-wrap{overflow:visible}
+  .prose table{font-size:9pt}
+  .prose a{border-bottom:0;color:#000}
+  .prose a.ext::after{content:" \\2192 " attr(href);font-size:7.6pt;color:#555;word-break:break-all}
+  .site-foot{page-break-before:avoid;break-before:avoid;margin-top:24pt}
+}
 `;
 }
 
