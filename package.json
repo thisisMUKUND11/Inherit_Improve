@@ -5,7 +5,7 @@
   "type": "commonjs",
   "description": "Inherit and improve: assessment, phased migration plan, and a working before/after refactor of an inherited production codebase.",
   "engines": {
-    "node": ">=22.5.0"
+    "node": "22.x"
   },
   "scripts": {
     "start:legacy": "node --experimental-sqlite code/legacy/server.js",
