@@ -1,0 +1,14 @@
+node_modules/
+*.log
+.DS_Store
+
+# Real environment files never enter the repo. Only .env.example is committed.
+.env
+.env.*
+!.env.example
+
+# Local databases and test scratch space
+*.db
+*.db-journal
+data/
+.tmp/

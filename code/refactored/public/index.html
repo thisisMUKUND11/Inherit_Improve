@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OrderDesk Storefront</title>
+<style>
+  body { font: 15px/1.5 system-ui, sans-serif; max-width: 780px; margin: 40px auto; padding: 0 20px; }
+  .note { background: #f2f8f4; border: 1px solid #bcd9c5; border-radius: 8px; padding: 12px 16px; }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+  td, th { text-align: left; padding: 6px 10px; border-bottom: 1px solid #eee; }
+  pre { background: #f6f6f6; padding: 12px; overflow-x: auto; }
+</style>
+</head>
+<body>
+<h1>OrderDesk <small>(refactored storefront)</small></h1>
+
+<p class="note">The same page, talking to an API. No SQL leaves the browser,
+there is no key in this bundle, and the response contains the fields a customer
+is allowed to see &mdash; cost price and supplier are no longer among them.</p>
+
+<h2>Products</h2>
+<table id="products"><thead><tr><th>Product</th><th>Price</th><th>Stock</th></tr></thead><tbody></tbody></table>
+
+<h2>Cart</h2>
+<p>2 &times; Cold Brew Bottle &nbsp; <input id="coupon" placeholder="coupon code" value="FLAT50"></p>
+<button onclick="quote()">Get quote</button>
+<button onclick="order()">Place order</button>
+<pre id="out">-</pre>
+
+<script>
+const CART = [{ productId: 2, qty: 2 }];
+
+async function api(path, body) {
+  const res = await fetch(path, {
+    method: body ? 'POST' : 'GET',
+    headers: { 'content-type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  return { status: res.status, body: await res.json() };
+}
+
+async function load() {
+  const { body: products } = await api('/api/products');
+  document.querySelector('#products tbody').innerHTML = products.map(function (p) {
+    return '<tr><td>' + p.name + '</td><td>' + p.price.toFixed(2) + '</td><td>' + p.stock + '</td></tr>';
+  }).join('');
+}
+
+function coupon() { return document.getElementById('coupon').value || undefined; }
+function show(label, r) {
+  document.getElementById('out').textContent = label + '  (HTTP ' + r.status + ')\n' + JSON.stringify(r.body, null, 2);
+}
+
+async function quote() { show('QUOTE', await api('/api/quote', { items: CART, coupon: coupon() })); }
+async function order() {
+  show('ORDER', await api('/api/orders', { email: 'customer@example.com', items: CART, coupon: coupon() }));
+}
+
+load();
+</script>
+</body>
+</html>

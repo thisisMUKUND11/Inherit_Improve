@@ -1,0 +1,1479 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inherit and improve — engineering assessment, migration plan and refactor</title>
+<meta name="description" content="Taking over a working but poorly built production codebase: assessment, phased migration plan, a real before/after refactor with tests, and engineering standards.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Ctext%20y%3D%22.9em%22%20font-size%3D%2290%22%3E%F0%9F%9B%A0%EF%B8%8F%3C%2Ftext%3E%3C%2Fsvg%3E">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+:root{
+  --paper:#fbfaf8; --ink:#1a1a19; --muted:#6b6a66; --faint:#95938d;
+  --line:#e3e0d9; --line-soft:#eeece6; --panel:#ffffff; --panel-2:#f5f3ee;
+  --accent:#9a5b12; --accent-soft:#f6ecdd;
+  --good:#2f6b45; --good-soft:#e8f2ea;
+  --bad:#a03328; --bad-soft:#fbeae7;
+  --code-bg:#f4f2ec; --code-ink:#2c2a26;
+  --rail:280px;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --paper:#131316; --ink:#e8e6e1; --muted:#9d9a94; --faint:#77746e;
+    --line:#2c2c31; --line-soft:#232327; --panel:#191920; --panel-2:#1e1e25;
+    --accent:#d99a4e; --accent-soft:#2a2118;
+    --good:#7bbd93; --good-soft:#18251c;
+    --bad:#e2887c; --bad-soft:#291a18;
+    --code-bg:#1c1c22; --code-ink:#d7d4ce;
+  }
+}
+:root[data-theme="light"]{
+  --paper:#fbfaf8; --ink:#1a1a19; --muted:#6b6a66; --faint:#95938d;
+  --line:#e3e0d9; --line-soft:#eeece6; --panel:#ffffff; --panel-2:#f5f3ee;
+  --accent:#9a5b12; --accent-soft:#f6ecdd;
+  --good:#2f6b45; --good-soft:#e8f2ea; --bad:#a03328; --bad-soft:#fbeae7;
+  --code-bg:#f4f2ec; --code-ink:#2c2a26;
+}
+:root[data-theme="dark"]{
+  --paper:#131316; --ink:#e8e6e1; --muted:#9d9a94; --faint:#77746e;
+  --line:#2c2c31; --line-soft:#232327; --panel:#191920; --panel-2:#1e1e25;
+  --accent:#d99a4e; --accent-soft:#2a2118;
+  --good:#7bbd93; --good-soft:#18251c; --bad:#e2887c; --bad-soft:#291a18;
+  --code-bg:#1c1c22; --code-ink:#d7d4ce;
+}
+
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+  font-size:16px;line-height:1.65;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:12px;top:12px;z-index:99;background:var(--panel);padding:8px 14px;border:1px solid var(--line);border-radius:6px}
+
+/* layout ---------------------------------------------------------------- */
+.layout{display:grid;grid-template-columns:var(--rail) minmax(0,1fr);min-height:100vh}
+.rail{position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid var(--line);
+  background:var(--panel);padding:26px 18px 20px;display:flex;flex-direction:column;gap:18px}
+main{min-width:0;padding:0 0 80px}
+.panel{max-width:790px;margin:0 auto;padding:56px 32px 0}
+
+/* rail ------------------------------------------------------------------ */
+.brand{display:flex;align-items:center;gap:9px;text-decoration:none;font-weight:640;
+  letter-spacing:-.01em;font-size:15px;padding:0 10px}
+.brand-mark{color:var(--accent);font-size:11px}
+.nav{display:flex;flex-direction:column;gap:2px;flex:1}
+.nav-group{display:flex;flex-direction:column}
+.nav-item{display:flex;align-items:baseline;gap:10px;padding:7px 10px;border-radius:7px;
+  text-decoration:none;color:var(--muted);font-size:14.5px;font-weight:500;transition:background .12s,color .12s}
+.nav-item:hover{background:var(--panel-2);color:var(--ink)}
+.nav-item.active{background:var(--accent-soft);color:var(--ink);font-weight:620}
+.nav-num{font-family:var(--mono);font-size:11px;color:var(--accent);width:11px;flex:none;text-align:center}
+.toc-sub{list-style:none;margin:1px 0 8px;padding:0 0 0 32px;display:none;
+  border-left:1px solid var(--line-soft);margin-left:19px}
+.toc-sub.open{display:block}
+.toc-sub li{margin:0}
+.toc-sub a{display:block;padding:4px 8px;font-size:13.2px;color:var(--faint);text-decoration:none;
+  line-height:1.4;border-radius:5px}
+.toc-sub a:hover{color:var(--ink)}
+.toc-sub a.here{color:var(--accent);font-weight:560}
+.rail-foot{border-top:1px solid var(--line-soft);padding-top:14px}
+.theme{display:flex;align-items:center;gap:8px;width:100%;background:none;border:0;
+  color:var(--faint);font:inherit;font-size:13px;padding:6px 10px;border-radius:7px;cursor:pointer}
+.theme:hover{background:var(--panel-2);color:var(--ink)}
+.theme-dot{width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,var(--ink) 50%,var(--paper) 50%);
+  border:1px solid var(--line)}
+
+/* hero ------------------------------------------------------------------ */
+.hero{padding-bottom:40px}
+.eyebrow{font-size:12.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--accent);
+  font-weight:640;margin:0 0 18px}
+.hero h1{font-family:var(--serif);font-size:clamp(38px,6.4vw,58px);line-height:1.02;
+  letter-spacing:-.022em;margin:0 0 22px;font-weight:600}
+.standfirst{font-size:18px;line-height:1.6;color:var(--muted);margin:0 0 16px;max-width:62ch}
+.standfirst:last-of-type{margin-bottom:34px}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:1px;
+  background:var(--line);border:1px solid var(--line);border-radius:11px;overflow:hidden;margin:0 0 40px}
+.stat{background:var(--panel);padding:18px 16px}
+.stat b{display:block;font-family:var(--serif);font-size:32px;line-height:1;color:var(--accent);
+  font-weight:600;margin-bottom:7px}
+.stat span{font-size:12.8px;color:var(--muted);line-height:1.4;display:block}
+.stat em{font-style:italic}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px;margin:0 0 38px}
+.card{position:relative;display:block;text-decoration:none;background:var(--panel);
+  border:1px solid var(--line);border-radius:11px;padding:20px 18px 18px;transition:border-color .14s,transform .14s}
+.card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.card-num{font-family:var(--mono);font-size:11.5px;color:var(--accent);font-weight:700;
+  text-transform:uppercase;letter-spacing:.06em}
+.card-weight{position:absolute;top:18px;right:16px;font-size:11.5px;color:var(--faint);font-family:var(--mono)}
+.card h3{font-size:17px;margin:8px 0 6px;letter-spacing:-.011em;font-weight:620}
+.card p{margin:0;font-size:13.6px;color:var(--muted);line-height:1.5}
+
+.callout{background:var(--accent-soft);border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:9px;padding:22px 24px;margin:0 0 30px}
+.callout h3{margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);font-weight:680}
+.callout p{margin:0;font-size:15.6px;line-height:1.68}
+
+.repo-line{display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:13.6px;color:var(--muted);
+  padding:15px 18px;border:1px dashed var(--line);border-radius:9px}
+.repo-line code{font-family:var(--mono);font-size:12.6px;background:var(--code-bg);color:var(--code-ink);
+  padding:4px 9px;border-radius:5px}
+
+/* prose ----------------------------------------------------------------- */
+.doc-kicker{font-family:var(--mono);font-size:11.5px;text-transform:uppercase;letter-spacing:.09em;
+  color:var(--accent);margin:0 0 4px;font-weight:600}
+.prose{font-size:16.4px;line-height:1.72}
+.prose h1{font-family:var(--serif);font-size:clamp(31px,4.6vw,42px);line-height:1.1;letter-spacing:-.018em;
+  margin:6px 0 26px;font-weight:600}
+.prose h2{font-family:var(--serif);font-size:26px;line-height:1.24;letter-spacing:-.013em;font-weight:600;
+  margin:54px 0 15px;padding-top:22px;border-top:1px solid var(--line)}
+.prose h3{font-size:17.5px;margin:34px 0 11px;letter-spacing:-.008em;font-weight:640}
+.prose h4{font-size:15.4px;margin:26px 0 8px;color:var(--muted);font-weight:640}
+.prose h1:first-child{margin-top:0}
+.prose h2 .anchor,.prose h3 .anchor{opacity:0;margin-left:-19px;padding-right:7px;text-decoration:none;
+  color:var(--faint);font-weight:400;transition:opacity .12s}
+.prose h2:hover .anchor,.prose h3:hover .anchor{opacity:1}
+.prose h1 .anchor,.prose h4 .anchor{display:none}
+.prose p{margin:0 0 17px}
+.prose a{color:var(--accent);text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--accent) 35%,transparent)}
+.prose a:hover{border-bottom-color:var(--accent)}
+.prose a.ext::after{content:"\2197";font-size:.78em;vertical-align:super;margin-left:1px;opacity:.65}
+.prose strong{font-weight:660}
+.prose ul,.prose ol{margin:0 0 18px;padding-left:24px}
+.prose li{margin:0 0 7px}
+.prose li::marker{color:var(--faint)}
+.prose li.task{list-style:none;margin-left:-20px;padding-left:26px;position:relative}
+.prose li.task::before{content:"";position:absolute;left:2px;top:.42em;width:13px;height:13px;
+  border:1.5px solid var(--line);border-radius:3.5px;background:var(--panel)}
+.prose li.task.done::before{background:var(--good);border-color:var(--good)}
+.prose blockquote{margin:22px 0;padding:2px 0 2px 20px;border-left:3px solid var(--line);color:var(--muted)}
+.prose blockquote p{margin:0 0 10px}
+.prose blockquote p:last-child{margin:0}
+.prose hr{border:0;border-top:1px solid var(--line);margin:42px 0}
+
+.prose code{font-family:var(--mono);font-size:.855em;background:var(--code-bg);color:var(--code-ink);
+  padding:2px 5px;border-radius:4px;word-break:break-word}
+.prose pre.code{background:var(--code-bg);border:1px solid var(--line);border-radius:9px;
+  padding:16px 18px;overflow-x:auto;margin:0 0 20px;font-size:13.4px;line-height:1.6;position:relative}
+.prose pre.code code{background:none;padding:0;font-size:inherit;color:var(--code-ink);white-space:pre}
+.prose pre.code[data-lang]::before{content:attr(data-lang);position:absolute;top:0;right:0;
+  font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);
+  padding:6px 11px}
+
+.table-wrap{overflow-x:auto;margin:0 0 22px;border:1px solid var(--line);border-radius:9px}
+.prose table{border-collapse:collapse;width:100%;font-size:14.3px;line-height:1.5}
+.prose th{text-align:left;font-weight:640;padding:11px 14px;background:var(--panel-2);
+  border-bottom:1px solid var(--line);white-space:nowrap}
+.prose td{padding:11px 14px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+.prose tbody tr:last-child td{border-bottom:0}
+.prose td code{font-size:.82em}
+
+/* footer ---------------------------------------------------------------- */
+.site-foot{max-width:790px;margin:70px auto 0;padding:26px 32px 0;border-top:1px solid var(--line);text-align:center}
+.credit{margin:0 0 5px;font-size:14.6px;font-weight:560}
+.credit a{color:var(--accent);text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--accent) 40%,transparent)}
+.credit a:hover{border-bottom-color:var(--accent)}
+.credit-sub{margin:0;font-size:13px;color:var(--faint)}
+
+/* responsive ------------------------------------------------------------ */
+@media (max-width:900px){
+  .layout{grid-template-columns:1fr}
+  .rail{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line);
+    padding:16px 14px;flex-direction:row;align-items:center;gap:14px;overflow-x:auto}
+  .brand span:last-child{display:none}
+  .nav{flex-direction:row;gap:4px;flex:1}
+  .nav-group{flex-direction:row}
+  .toc-sub{display:none!important}
+  .nav-item{white-space:nowrap;font-size:13.6px;padding:6px 11px}
+  .rail-foot{border-top:0;padding-top:0}
+  .theme span:last-child{display:none}
+  .panel{padding:34px 20px 0}
+  .site-foot{padding:26px 20px 0}
+  .prose{font-size:16px}
+  .prose h2{margin-top:42px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="layout">
+  <aside class="rail">
+    <a class="brand" href="#overview">
+      <span class="brand-mark">&#9679;</span>
+      <span>Inherit &amp; improve</span>
+    </a>
+    <nav class="nav">
+    <a class="nav-item" href="#overview" data-target="overview">
+      <span class="nav-num">&#9656;</span> Overview
+    </a>
+    
+    <div class="nav-group">
+      <a class="nav-item" href="#assessment" data-target="assessment">
+        <span class="nav-num">a</span> Assessment
+      </a>
+      <ol class="toc-sub" data-doc="assessment"><li><a href="#assessment--1-before-i-change-anything">1. Before I change anything</a></li><li><a href="#assessment--2-how-i-ranked-it">2. How I ranked it</a></li><li><a href="#assessment--3-the-register">3. The register</a></li><li><a href="#assessment--4-what-i-need-from-the-business">4. What I need from the business</a></li><li><a href="#assessment--5-what-quotfixedquot-looks-like">5. What &quot;fixed&quot; looks like</a></li></ol>
+    </div>
+    <div class="nav-group">
+      <a class="nav-item" href="#migration" data-target="migration">
+        <span class="nav-num">b</span> Migration plan
+      </a>
+      <ol class="toc-sub" data-doc="migration"><li><a href="#migration--1-the-rules-this-plan-obeys">1. The rules this plan obeys</a></li><li><a href="#migration--2-week-1--stop-the-bleeding-build-the-instruments">2. Week 1 — stop the bleeding, build the instruments</a></li><li><a href="#migration--3-month-1--the-first-seam-and-the-money">3. Month 1 — the first seam, and the money</a></li><li><a href="#migration--4-quarter-1--finish-it-and-make-it-not-need-me">4. Quarter 1 — finish it, and make it not need me</a></li><li><a href="#migration--5-changes-that-cannot-be-behaviour-preserving">5. Changes that cannot be behaviour-preserving</a></li><li><a href="#migration--6-what-could-go-wrong-with-the-plan-itself">6. What could go wrong with the plan itself</a></li><li><a href="#migration--7-not-this-quarter">7. Not this quarter</a></li></ol>
+    </div>
+    <div class="nav-group">
+      <a class="nav-item" href="#refactor" data-target="refactor">
+        <span class="nav-num">c</span> Refactor
+      </a>
+      <ol class="toc-sub" data-doc="refactor"><li><a href="#refactor--1-before">1. Before</a></li><li><a href="#refactor--2-what-is-actually-wrong-with-it">2. What is actually wrong with it</a></li><li><a href="#refactor--3-the-safety-net-before-touching-anything">3. The safety net, before touching anything</a></li><li><a href="#refactor--4-after">4. After</a></li><li><a href="#refactor--5-what-improved">5. What improved</a></li><li><a href="#refactor--6-three-decisions-worth-defending">6. Three decisions worth defending</a></li><li><a href="#refactor--7-what-i-did-not-change">7. What I did not change</a></li><li><a href="#refactor--8-how-this-ships">8. How this ships</a></li></ol>
+    </div>
+    <div class="nav-group">
+      <a class="nav-item" href="#standards" data-target="standards">
+        <span class="nav-num">d</span> Standards
+      </a>
+      <ol class="toc-sub" data-doc="standards"><li><a href="#standards--part-one--the-standards">Part one — the standards</a></li><li><a href="#standards--part-two--adoption">Part two — adoption</a></li></ol>
+    </div></nav>
+    <div class="rail-foot">
+      <button class="theme" type="button" aria-label="Toggle colour theme">
+        <span class="theme-dot"></span> Theme
+      </button>
+    </div>
+  </aside>
+
+  <main id="main">
+    
+    <section class="panel" id="panel-overview" data-panel="overview">
+<header class="hero">
+  <p class="eyebrow">Digital Heroes &middot; full-stack training task</p>
+  <h1>Inherit&nbsp;and improve</h1>
+  <p class="standfirst">A working but poorly built codebase. It serves real customers, it
+  cannot go down, and it has no tests, business logic in its route handlers, a browser
+  that talks straight to the database, and its production credentials committed to git.</p>
+  <p class="standfirst">This is the assessment, the phased plan, a real refactor with the
+  tests that made it safe, and the standards &mdash; plus the running before/after code
+  that proves each claim.</p>
+
+  <div class="stats">
+    <div class="stat"><b>86</b><span>tests, all passing</span></div>
+    <div class="stat"><b>24</b><span>contract assertions run against <em>both</em> systems</span></div>
+    <div class="stat"><b>13</b><span>defects proven fixed, each with a failing-before test</span></div>
+    <div class="stat"><b>0</b><span>big-bang rewrites</span></div>
+  </div>
+
+  <div class="cards">
+    
+    <a class="card" href="#assessment">
+      <span class="card-num">a</span>
+      <span class="card-weight">30 pts</span>
+      <h3>Assessment</h3>
+      <p>What to fix, in what order, and the risk of leaving each thing alone</p>
+    </a>
+    <a class="card" href="#migration">
+      <span class="card-num">b</span>
+      <span class="card-weight">25 pts</span>
+      <h3>Migration plan</h3>
+      <p>Week 1, month 1, quarter 1 — no big-bang rewrite, no downtime</p>
+    </a>
+    <a class="card" href="#refactor">
+      <span class="card-num">c</span>
+      <span class="card-weight">25 pts</span>
+      <h3>Refactor</h3>
+      <p>One real handler, before and after, with the tests that made it safe</p>
+    </a>
+    <a class="card" href="#standards">
+      <span class="card-num">d</span>
+      <span class="card-weight">20 pts</span>
+      <h3>Standards</h3>
+      <p>What to introduce, and how to get a resistant team to adopt it</p>
+    </a>
+  </div>
+
+  <div class="callout">
+    <h3>The one-paragraph version</h3>
+    <p>Rotate the credentials and close the open doors in week one, because a leak cannot
+    be un-leaked &mdash; then build the instruments, because you cannot safely change what
+    you cannot observe. Grow the new code inside the old application one endpoint at a
+    time, behind a flag, with a contract test suite that runs against both so the two stay
+    interchangeable while traffic moves across. Change the database with expand and
+    contract, never a rename. Fix the structure as a consequence of fixing defects that
+    pay for themselves, never as a line item nobody can justify. And introduce standards
+    only after fixing something that already hurt, one rule at a time, enforced by CI
+    rather than by anyone's memory.</p>
+  </div>
+
+  <div class="repo-line">
+    <span>Run it yourself &mdash; both systems, one command:</span>
+    <code>git clone &amp;&amp; npm install &amp;&amp; npm test</code>
+  </div>
+</header></section>
+    
+    <section class="panel" id="panel-assessment" data-panel="assessment" hidden>
+      <p class="doc-kicker">Deliverable a &middot; 30 points</p>
+      <article class="prose"><h1 id="assessment--assessment--orderdesk"><a class="anchor" href="#assessment--assessment--orderdesk" aria-label="Link to this section">#</a>Assessment — OrderDesk</h1>
+<p><strong>What this is:</strong> an engineering assessment of an inherited production system, the
+order in which I would fix it, and what it costs to leave each thing alone.</p>
+<p><strong>The system:</strong> OrderDesk is the checkout and order API behind a direct-to-consumer
+coffee retailer. Four years old, written by one developer who has since left, kept
+running by three engineers who did not write it. Roughly 40,000 orders a month. It
+works. Customers are being served right now, and they will be served during
+everything described here.</p>
+<p><strong>The constraint that shapes every decision below:</strong> it cannot go down. That rules out
+a rewrite, rules out a freeze, and rules out any change I cannot reverse in minutes.</p>
+<blockquote>
+<p><strong>On the numbers.</strong> Figures like &quot;12% of orders use a coupon&quot; are the estimates I
+would put in front of a CEO on day two, each derivable from a single query. Week 1
+replaces every estimate with the real figure. Where a number is load-bearing I have
+said what query produces it.</p>
+</blockquote>
+<hr>
+<h2 id="assessment--1-before-i-change-anything"><a class="anchor" href="#assessment--1-before-i-change-anything" aria-label="Link to this section">#</a>1. Before I change anything</h2>
+<p>The first instinct with a codebase like this is to start fixing it. That instinct is
+wrong, and acting on it is how a new hire causes their first outage in week one. Two
+days of the following is the highest-value work available:</p>
+<ul>
+<li><strong>Read the incident history.</strong> Every outage, every &quot;can you just fix this&quot; Slack
+thread, every rolled-back deploy. What breaks tells you where the system is thin
+far faster than reading source does.</li>
+<li><strong>Watch a deploy.</strong> Not a description of a deploy — an actual one, over someone&#39;s
+shoulder, with a stopwatch. How long, how many manual steps, what happens when it
+goes wrong, who is allowed to do it.</li>
+<li><strong>Sit with support for two hours.</strong> Support knows every defect in the product. They
+have workarounds for bugs nobody has ever written down. &quot;Oh, we just tell them to
+refresh&quot; is a bug report.</li>
+<li><strong>Find the money path.</strong> In this system it is: product page → cart → quote →
+checkout → confirmation email. Everything else can break for an hour and cost
+goodwill. This breaks and it costs revenue.</li>
+<li><strong>Ask each engineer, separately: what are you afraid to touch?</strong> The answers map the
+fragility better than any static analysis, and they tell you who has been carrying
+what.</li>
+<li><strong>Find out what happened last time someone tried to improve things.</strong> There is
+almost always a previous attempt. Knowing why it stalled is the difference between
+a plan that gets adopted and a plan that gets nodded at. See
+<a href="#standards--1-resistance-is-information">Standards</a>.</li>
+</ul>
+<p>I would also confirm, in writing, one thing with the business before touching the
+pricing code: <strong>which of the two conflicting price calculations is correct.</strong> That is
+not an engineering decision, and I explain why under COR-3.</p>
+<hr>
+<h2 id="assessment--2-how-i-ranked-it"><a class="anchor" href="#assessment--2-how-i-ranked-it" aria-label="Link to this section">#</a>2. How I ranked it</h2>
+<p>Four rules, applied in this order. They are not scored on a matrix; when two issues
+compete, the earlier rule wins.</p>
+<p><strong>Rule 1 — Irreversible beats expensive.</strong> A leaked credential cannot be un-leaked. An
+unverified backup cannot be restored retroactively. Data corrupted silently for a
+month is not recoverable by fixing the bug that caused it. These come first even when
+something else is costing more money today, because everything else can still be fixed
+tomorrow at the same price.</p>
+<p><strong>Rule 2 — You cannot safely change what you cannot observe or verify.</strong> Tests,
+logging, error tracking and a working rollback are not &quot;quality work&quot; competing with
+the real fixes. They are the equipment the real fixes require. Doing structural work
+before them is not faster; it is the same work done blind.</p>
+<p><strong>Rule 3 — Bleeding beats aching.</strong> An active, ongoing loss — money leaving the
+business on every coupon order, stock being oversold every week — outranks a chronic
+condition that makes engineering slow. Fat route handlers cost a fortune over a year
+and cost nothing this afternoon.</p>
+<p><strong>Rule 4 — Success makes it worse.</strong> Prefer fixing issues that get more dangerous as
+traffic grows. The oversell race is invisible at 10 orders an hour and constant at
+500. Fixing it at the current volume is cheap; fixing it after a campaign is an
+incident with a customer-service tail.</p>
+<p><strong>One thing that is explicitly not a rule: how bad the code makes me feel.</strong> The
+ugliest code in this repository is not on this list, because it works, it is not on
+the money path, and nobody needs to change it.</p>
+<hr>
+<h2 id="assessment--3-the-register"><a class="anchor" href="#assessment--3-the-register" aria-label="Link to this section">#</a>3. The register</h2>
+<p>Severity is <em>impact if it happens</em>; Likelihood is <em>chance in the next 90 days at
+current volume</em>. &quot;Order&quot; is the tier it belongs to, not a strict sequence — everything
+inside a tier can run in parallel across three engineers.</p>
+<div class="table-wrap"><table><thead><tr><th>ID</th><th>Issue</th><th>Severity</th><th>Likelihood</th><th>Effort</th><th>Order</th></tr></thead><tbody><tr><td><strong>SEC-1</strong></td><td>Live credentials committed to the repository</td><td>Critical</td><td><strong>Already happened</strong></td><td>1 day</td><td>T0</td></tr><tr><td><strong>OPS-1</strong></td><td>Backups never restore-tested</td><td>Critical</td><td>Low</td><td>1 day</td><td>T0</td></tr><tr><td><strong>SEC-2</strong></td><td>Frontend executes SQL via <code>POST /db/sql</code>; admin key in the client bundle</td><td>Critical</td><td>High</td><td>2 days</td><td>T0</td></tr><tr><td><strong>OBS-1</strong></td><td>No error tracking, no structured logs, no alerting</td><td>High</td><td><strong>Continuous</strong></td><td>2 days</td><td>T0</td></tr><tr><td><strong>SEC-3</strong></td><td>SQL injection via the coupon field</td><td>Critical</td><td>Medium</td><td>½ day</td><td>T0</td></tr><tr><td><strong>OPS-2</strong></td><td>No safe deploy path: manual, no staging, no tested rollback</td><td>High</td><td>High</td><td>3 days</td><td>T1</td></tr><tr><td><strong>TST-1</strong></td><td>No tests, no CI</td><td>High</td><td><strong>Continuous</strong></td><td>3 days</td><td>T1</td></tr><tr><td><strong>COR-3</strong></td><td>Quote and checkout compute different prices</td><td>High</td><td><strong>Continuous</strong></td><td>3 days</td><td>T2</td></tr><tr><td><strong>COR-1</strong></td><td>Money stored and computed in floating point</td><td>High</td><td><strong>Continuous</strong></td><td>5 days</td><td>T2</td></tr><tr><td><strong>COR-2</strong></td><td>No transactions; check-then-write stock race</td><td>High</td><td>High</td><td>3 days</td><td>T2</td></tr><tr><td><strong>REL-1</strong></td><td>Email sent synchronously inside checkout</td><td>High</td><td>Medium</td><td>3 days</td><td>T2</td></tr><tr><td><strong>ARC-2</strong></td><td>No input validation anywhere</td><td>High</td><td>High</td><td>2 days</td><td>T2</td></tr><tr><td><strong>SEC-5</strong></td><td>Sequential order IDs, no authorisation on order lookup</td><td>High</td><td>Medium</td><td>2 days</td><td>T2</td></tr><tr><td><strong>ARC-1</strong></td><td>Business logic inside route handlers</td><td>Medium</td><td><strong>Continuous</strong></td><td>Ongoing</td><td>T2</td></tr><tr><td><strong>SEC-4</strong></td><td>Card data and PII written to application logs</td><td>High</td><td><strong>Already happened</strong></td><td>1 day</td><td>T1</td></tr><tr><td><strong>SEC-6</strong></td><td>Shared admin key, passed in the query string</td><td>Medium</td><td>Medium</td><td>1 day</td><td>T2</td></tr><tr><td><strong>OPS-3</strong></td><td>Application connects to Postgres as a superuser</td><td>Medium</td><td>Low</td><td>1 day</td><td>T3</td></tr><tr><td><strong>DB-1</strong></td><td>Schema created at boot; no migration history</td><td>Medium</td><td>Medium</td><td>2 days</td><td>T3</td></tr><tr><td><strong>PERF-1</strong></td><td>N+1 product queries per cart; no indexes beyond primary keys</td><td>Medium</td><td>Medium</td><td>3 days</td><td>T3</td></tr><tr><td><strong>DEP-1</strong></td><td>Dependencies unpinned and years stale</td><td>Medium</td><td>Medium</td><td>Ongoing</td><td>T3</td></tr><tr><td><strong>ORG-1</strong></td><td>Bus factor of one on deployment; no runbook</td><td>High</td><td>Medium</td><td>2 days</td><td>T3</td></tr></tbody></table></div>
+<h3 id="assessment--what-each-one-costs-if-we-leave-it"><a class="anchor" href="#assessment--what-each-one-costs-if-we-leave-it" aria-label="Link to this section">#</a>What each one costs if we leave it</h3>
+<p><strong>SEC-1 — Credentials in the repository.</strong>
+<code>config.json</code> contains the database password, the SMTP password, a live payment
+secret key and the admin key. Anyone who has ever cloned the repository has them
+permanently — contractors, ex-employees, anyone with a laptop backup. <strong>The exposure
+is not a risk, it is a state that already exists</strong>, and every day it continues the
+window widens. Leaving it: an ex-contractor with a grudge, or one leaked laptop, can
+read every customer record, send mail as the company, and move money. Deleting the
+file changes nothing; git keeps history and the credentials remain valid. <em>The fix is
+rotation.</em> Scrubbing history is housekeeping that happens afterwards.
+→ <em>This is number one purely because of Rule 1: it is the only item where the damage
+accrues while you plan.</em></p>
+<p><strong>OPS-1 — Backups never restore-tested.</strong>
+The managed database has nightly snapshots. Nobody has ever restored one. An untested
+backup is a hypothesis. Leaving it: the one failure that ends the company instead of
+inconveniencing it. It shares tier 0 with SEC-1 because it is one day of work and it
+is the difference between a bad week and no company.</p>
+<p><strong>SEC-2 — The browser sends SQL to the server.</strong>
+<code>POST /db/sql</code> accepts a SQL string from the client and runs it. It was added in 2021
+so the storefront could show stock levels without waiting for an API change. Every
+visitor has a database console — <code>SELECT * FROM orders</code> returns every customer&#39;s email
+and order history, and <code>DROP TABLE</code> is spelled the same way it always is. The admin key
+is also sitting in the page source. Leaving it: total data compromise, on a timescale
+set by whoever looks first. This is a two-day fix — two read endpoints the storefront
+already needs — and until it ships, nothing else on this list matters.
+→ <em>Demonstrated in <a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/test/differences/intended-differences.test.js" target="_blank" rel="noopener" class="ext"><code>intended-differences.test.js</code></a>
+under <code>SEC-2</code>.</em></p>
+<p><strong>OBS-1 — Nothing is watched.</strong>
+No error tracker, no structured logs, no uptime check, no alert. Outages are reported
+by customers on Instagram. There is no way to answer &quot;is this happening to everyone or
+just them&quot;, &quot;when did it start&quot;, or — critically — &quot;did my change make it worse&quot;.
+Leaving it: unbounded time-to-detection, and no evidence base for any decision after
+today. This is tier 0 not because it is urgent on its own but because of Rule 2:
+<strong>it is the instrument panel for every other fix on this list.</strong> Doing COR-1 without it
+means changing money code and finding out whether it worked from the monthly accounts.</p>
+<p><strong>SEC-3 — SQL injection in the coupon field.</strong>
+The coupon code is concatenated into the query. <code>X&#39; OR kind=&#39;fixed&#39; --</code> yields ₹50 off
+with no valid code, and the same hole reads any table. Half a day to fix (bind the
+parameter), so it goes in tier 0 on effort alone.
+→ <em>Proven, with a working exploit, in the differences suite.</em></p>
+<p><strong>SEC-4 — Card data in the logs.</strong>
+The checkout handler opens with <code>console.log(JSON.stringify(req.body))</code>, and the body
+contains the card object. Four years of card numbers and customer PII are in the
+hosting provider&#39;s log retention. Like SEC-1, the damage is historical as well as
+ongoing: stopping the logging does not unlog it. Tier 1 rather than tier 0 only
+because stopping the write is a one-line change bundled with the logging work, and the
+cleanup (log purge, retention policy, and a call with whoever owns PCI compliance) is
+a conversation, not a code change.</p>
+<p><strong>OPS-2 — No safe deploy path.</strong>
+Deployment is ssh, <code>git pull</code>, <code>pm2 restart</code>. No staging, no versioned artefacts, no
+rollback beyond <code>git revert</code> and doing it again. Leaving it: every fix on this list is
+a gamble, so the team quite reasonably batches changes to reduce the number of
+gambles, which makes each one bigger and more dangerous. <strong>This is the root cause of
+the fear, and fear is why the codebase looks like this.</strong> Nothing else in the plan is
+safe to attempt at speed until deploying is boring.</p>
+<p><strong>TST-1 — No tests.</strong>
+Zero. Every change is verified by clicking through the site. Leaving it: refactoring
+is impossible, because refactoring means &quot;change the code without changing the
+behaviour&quot; and there is no way to know whether the behaviour changed. The team&#39;s
+reluctance to touch things is not conservatism — <strong>it is a correct assessment of their
+tooling.</strong></p>
+<p><strong>COR-3 — Quote and checkout disagree.</strong>
+<code>POST /api/quote</code> subtracts the coupon before tax. <code>POST /api/orders</code> subtracts it
+after. The difference is exactly 18% of the discount, and the customer pays it. On a
+₹50 coupon that is ₹9.00 — the customer is shown 470.82 and charged 479.82.</p>
+<p>This is the item I would take to the CEO on day two, because it is not primarily an
+engineering problem:</p>
+<ul>
+<li>Customers are charged more than they were quoted, on <strong>every coupon order</strong>. At an
+estimated 12% coupon usage and ~₹180 average discount, that is roughly <strong>₹155,000 a
+month</strong> collected in error, and a refund liability going back three years. <em>(Real
+figure: one query joining orders to coupons.)</em></li>
+<li>Charging tax on a discount the customer received is not a rounding quirk. Every
+affected invoice is wrong.</li>
+<li>It is invisible without comparing two screens, which is why it survived three years.</li>
+</ul>
+<p><strong>And there is a decision here that is not mine to make.</strong> When two code paths
+disagree, &quot;preserve existing behaviour&quot; is not an available option — there are two
+existing behaviours. Someone in finance has to say which one is correct, and someone
+in leadership has to decide what happens about the three years of invoices. My job is
+to make the question unambiguous, cheap to answer, and impossible to recreate.
+→ <em>The matrix test proves that the inherited system diverges on 100% of coupon carts
+and 0% of non-coupon carts — which is exactly why nobody noticed.</em></p>
+<p><strong>COR-1 — Money in floating point.</strong>
+Prices are <code>REAL</code> in the database and rounded with <code>Math.round(x * 100) / 100</code>, which
+is wrong whenever the float sits just under a half-paise boundary. Three filter
+coffees at ₹5.35 discount by ₹1.60 instead of ₹1.61. A sweep of realistic
+price × quantity × coupon combinations finds <strong>6,211 divergent cases</strong>. Leaving it:
+the ledger never quite balances, reconciliation stays a manual monthly chore that
+someone quietly absorbs, and each wrong row is written permanently. Worse than the
+error is the <em>class</em> of error — silent, small, cumulative, and impossible to
+distinguish from a data-entry mistake after the fact.</p>
+<p><strong>COR-2 — No transactions, and a stock race.</strong>
+Checkout writes the order row and then updates stock in separate statements, with no
+transaction. It also does <code>SELECT stock</code> → <code>if (stock &gt;= qty)</code> → <code>UPDATE</code>, with an
+await in the middle. Two concurrent orders for the last four bottles both pass the
+check and both decrement. Leaving it: overselling that support absorbs manually,
+inventory nobody trusts, and orders that are half-written when a process restarts.
+Rule 4 applies hard — this is a Tuesday-afternoon curiosity now and a permanent state
+of affairs the first time a campaign lands.
+→ <em>The differences suite drives two concurrent checkouts against the inherited system
+and asserts stock ends at <strong>−2</strong>.</em></p>
+<p><strong>REL-1 — The mail provider is inside the checkout transaction.</strong>
+<code>await sendConfirmationEmail(...)</code> runs after the order is committed and the card is
+charged, inside the request. When the provider has a bad afternoon the customer gets
+a 500 — with a stack trace — for an order that already exists and has already been
+paid for. <strong>So they order again.</strong> Leaving it: the third-party&#39;s availability is
+multiplied into ours, and every provider blip generates duplicate orders and refund
+work.</p>
+<p><strong>ARC-2 — No input validation.</strong>
+<code>qty: -5</code> is accepted: it produces a negative total and <em>returns five mugs to stock</em>.
+Leaving it: an open till. This is cheap to fix and belongs with the extraction work
+because that is where the boundary gets a name.</p>
+<p><strong>SEC-5 — Order IDs are sequential and unauthenticated.</strong>
+<code>GET /api/orders/41</code> returns order 41 to anybody, including the customer&#39;s email and
+what they bought. Enumerable, so &quot;anybody&quot; means &quot;one short script&quot;. Leaving it: a
+bulk customer-data leak that requires no skill, and a disclosure obligation when it
+happens.</p>
+<p><strong>ARC-1 — Business logic in route handlers.</strong>
+The checkout handler is 118 lines of validation, pricing, stock, persistence, payment
+and email. This is the headline complaint about the codebase and it is deliberately
+<em>not</em> near the top of the list, because on its own it costs nothing today. It matters
+because it is the <strong>mechanism</strong> behind COR-3, COR-2, ARC-2 and REL-1: logic with
+nowhere to live gets copied, and copies drift. Fixing the four defects properly means
+fixing this, which is the right order — the structure improves as a consequence of
+fixing something that pays for itself, not as a line item nobody can justify.</p>
+<p><strong>ORG-1 — One person can deploy.</strong>
+Not a code issue and a genuine business risk. Leaving it: the system is unmaintainable
+for the fortnight that person is on holiday.</p>
+<h3 id="assessment--deliberately-not-on-this-list"><a class="anchor" href="#assessment--deliberately-not-on-this-list" aria-label="Link to this section">#</a>Deliberately not on this list</h3>
+<p>Restraint is a plan too. Each of these is a real improvement, and each would consume
+the credibility needed to do the things above.</p>
+<div class="table-wrap"><table><thead><tr><th>Not doing</th><th>Why not</th></tr></thead><tbody><tr><td>Rewriting the app</td><td>It works, it earns money, and a rewrite means running two systems while shipping nothing for six months. Rewrites of systems nobody fully understands are how companies die.</td></tr><tr><td>Migrating to TypeScript</td><td>Defensible, and it is a whole-codebase change touching every file during the exact quarter I need clean, reviewable diffs. Revisit in Q2, gradually, with <code>checkJs</code> and JSDoc. See <a href="#standards--6-what-i-am-not-proposing-yet">Standards §6</a>.</td></tr><tr><td>Splitting into services</td><td>The problem is that the code has no internal boundaries. Adding network calls between the same tangle makes it a distributed tangle. Modules first; if the module boundaries hold for six months, then talk.</td></tr><tr><td>Reformatting the codebase</td><td>Destroys <code>git blame</code> on the only archaeology available. When it happens: one commit, tool-generated, added to <code>.git-blame-ignore-revs</code>.</td></tr><tr><td>Replacing express</td><td>It is not the problem.</td></tr><tr><td>Chasing 80% coverage</td><td>A number, not a goal. Cover the money paths and ratchet from there. See <a href="#standards--3-testing-standards">Standards §3</a>.</td></tr><tr><td>Renaming things for taste</td><td>Real cost, no revenue, and it reads to the team as criticism of people rather than of code.</td></tr></tbody></table></div>
+<hr>
+<h2 id="assessment--4-what-i-need-from-the-business"><a class="anchor" href="#assessment--4-what-i-need-from-the-business" aria-label="Link to this section">#</a>4. What I need from the business</h2>
+<p>Engineering cannot decide these, and the plan stalls without them.</p>
+<ol>
+<li><strong>Which pricing rule is correct?</strong> (COR-3.) Finance, in writing, this week.</li>
+<li><strong>What happens about three years of incorrect invoices?</strong> Leadership and whoever
+advises on tax. Engineering can produce the affected list in a day; the remedy is
+not our call.</li>
+<li><strong>Who owns PCI compliance,</strong> and do they know card numbers are in the logs? (SEC-4.)</li>
+<li><strong>What fraction of engineering time do we get?</strong> My plan assumes 30–40%, sustained.
+Not a freeze — a freeze is how these efforts get cancelled in week three when a
+customer escalates. See <a href="#migration--1-the-rules-this-plan-obeys">Migration plan §1</a>.</li>
+<li><strong>What is the acceptable blast radius for a mistake?</strong> It determines how fast the
+canary ramps. I would propose: no change may put more than 1% of orders at risk for
+more than 10 minutes.</li>
+</ol>
+<hr>
+<h2 id="assessment--5-what-quotfixedquot-looks-like"><a class="anchor" href="#assessment--5-what-quotfixedquot-looks-like" aria-label="Link to this section">#</a>5. What &quot;fixed&quot; looks like</h2>
+<p>Success criteria, so this can be marked honestly at the end of the quarter.</p>
+<div class="table-wrap"><table><thead><tr><th>Measure</th><th>Today</th><th>End of Q1</th></tr></thead><tbody><tr><td>Time to detect a checkout outage</td><td>Hours, via customers</td><td>Under 5 minutes, via alert</td></tr><tr><td>Time to roll back a bad deploy</td><td>30+ minutes, manual</td><td>Under 5 minutes, one command</td></tr><tr><td>Deploy frequency</td><td>Weekly, feared</td><td>Daily, boring</td></tr><tr><td>Change failure rate</td><td>Unknown</td><td>Measured, under 15%</td></tr><tr><td>Quote/charge disagreements</td><td>Every coupon order</td><td>Zero, enforced by test</td></tr><tr><td>Credentials in the repository</td><td>5</td><td>0, enforced by CI</td></tr><tr><td>Test coverage of the money path</td><td>0%</td><td>Contract + unit, in CI on every push</td></tr><tr><td>Engineers who can deploy safely</td><td>1</td><td>All of them</td></tr><tr><td>Engineers who will touch checkout</td><td>0</td><td>All of them</td></tr></tbody></table></div>
+<p>The last row is the one I would actually judge it on.</p>
+<hr>
+<p><strong>Next:</strong> <a href="#migration">Migration plan →</a></p>
+</article>
+    </section>
+    <section class="panel" id="panel-migration" data-panel="migration" hidden>
+      <p class="doc-kicker">Deliverable b &middot; 25 points</p>
+      <article class="prose"><h1 id="migration--migration-plan--orderdesk"><a class="anchor" href="#migration--migration-plan--orderdesk" aria-label="Link to this section">#</a>Migration plan — OrderDesk</h1>
+<p>A phased plan to get from the system described in the <a href="#assessment">assessment</a>
+to a maintainable one, without a rewrite, without a freeze, and without an outage.</p>
+<p><strong>Shape of it:</strong> strangler fig, at the route level. The new code grows inside the old
+application, one endpoint at a time. Both implementations run in the same process
+behind a flag. Traffic moves gradually. The old path is deleted only once the new one
+has carried 100% of production traffic for a full week.</p>
+<p>At no point are there two systems to keep in sync, and at no point is there a
+&quot;switchover day&quot;.</p>
+<hr>
+<h2 id="migration--1-the-rules-this-plan-obeys"><a class="anchor" href="#migration--1-the-rules-this-plan-obeys" aria-label="Link to this section">#</a>1. The rules this plan obeys</h2>
+<p><strong>Capacity is 30–40%, not 100%.</strong> Three engineers, and feature work continues
+throughout — that is not a compromise, it is the condition that makes the plan
+survivable. A freeze puts the whole effort on the chopping block the first time a
+customer escalates. Concretely: one engineer on migration work at any time, rotating,
+plus everyone applying the <em>touch-it-improve-it</em> rule to feature work. <strong>The rotation
+is not fairness, it is the adoption strategy</strong> — by the end of Q1 all three have done
+it, and the pattern is not mine any more.</p>
+<p><strong>Every week ends deployable.</strong> No long-lived branches, no &quot;we&#39;ll integrate in
+February&quot;. Work merges to <code>main</code> behind a flag, dark, as often as it compiles.</p>
+<p><strong>Nothing ships without a way back.</strong> Every phase names its rollback, and the rollback
+is <em>executed at least once on purpose</em> before it is needed. An untested rollback is
+the same hypothesis as an untested backup.</p>
+<p><strong>Database changes are expand/contract, always.</strong> Deploys overlap; old and new code
+run simultaneously for at least a few minutes, and during a canary for days. Any
+migration a running instance of the previous version cannot tolerate is forbidden.
+No column is renamed. No column is dropped in the same release that stops using it.</p>
+<p><strong>Deletion is in the plan.</strong> A strangler migration that never removes the old code
+leaves you with two systems and twice the work. Every migration ticket has a paired
+deletion ticket, scheduled, in the same epic. <strong>Not deleting is the most common way
+this pattern fails.</strong></p>
+<p><strong>Behaviour changes are separated from structural changes.</strong> Never in the same
+release. When something breaks after a deploy that did both, you cannot tell which
+half did it. See §5.</p>
+<hr>
+<h2 id="migration--2-week-1--stop-the-bleeding-build-the-instruments"><a class="anchor" href="#migration--2-week-1--stop-the-bleeding-build-the-instruments" aria-label="Link to this section">#</a>2. Week 1 — stop the bleeding, build the instruments</h2>
+<p>No refactoring this week. One code change, and it is a security stop-loss.</p>
+<h3 id="migration--day-1--credentials"><a class="anchor" href="#migration--day-1--credentials" aria-label="Link to this section">#</a>Day 1 — Credentials</h3>
+<ul>
+<li>Rotate every credential in <code>config.json</code>: database password, SMTP, payment secret,
+admin key. <strong>Rotate first, tidy later</strong> — new values into the secret store, old ones
+revoked at the provider. That is what ends the exposure.</li>
+<li>Move configuration to environment variables with startup validation, so a missing
+value is a boot failure with a clear message instead of <code>undefined</code> reaching the
+payment provider. → <a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/refactored/src/config/env.js" target="_blank" rel="noopener" class="ext"><code>config/env.js</code></a></li>
+<li>Pull the provider access logs for the exposure window and look for use from
+addresses we do not recognise. Assume compromise until the logs say otherwise.</li>
+<li>Add <code>gitleaks</code> to CI and to a pre-commit hook. CI alone is too late: by the time CI
+runs, the secret is pushed. → <a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/tools/scan-secrets.js" target="_blank" rel="noopener" class="ext"><code>scan-secrets.js</code></a></li>
+<li>Schedule the history scrub (<code>git-filter-repo</code>) for the weekend. It rewrites every
+hash and needs everyone to re-clone, so it waits for a quiet moment. It is also
+optional — rotation is the fix.</li>
+</ul>
+<p><em>Rollback: none needed; rotation is additive. Old credentials stay revoked.</em></p>
+<h3 id="migration--day-12--prove-the-backups"><a class="anchor" href="#migration--day-12--prove-the-backups" aria-label="Link to this section">#</a>Day 1–2 — Prove the backups</h3>
+<ul>
+<li>Restore last night&#39;s snapshot into a scratch database. Time it. Write down the
+number and the steps.</li>
+<li>Verify row counts and the last order timestamp against production.</li>
+<li>Publish the restore runbook. Put the timing in it, because &quot;how long until we are
+back&quot; is the first question anyone will ask.</li>
+<li>Schedule this as a recurring monthly exercise with a named owner.</li>
+</ul>
+<p><em>Deliverable: a restore we have actually done, and a number we can quote.</em></p>
+<h3 id="migration--day-2--instruments"><a class="anchor" href="#migration--day-2--instruments" aria-label="Link to this section">#</a>Day 2 — Instruments</h3>
+<ul>
+<li>Error tracking (Sentry or equivalent), wired to a channel a human reads.</li>
+<li>Structured JSON request logs with a request id, <strong>and redaction on the way out</strong> —
+the denylist is applied centrally, not remembered at each call site. This also
+closes SEC-4. → <a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/refactored/src/observability/logger.js" target="_blank" rel="noopener" class="ext"><code>logger.js</code></a></li>
+<li>One dashboard, four numbers: error rate, p95 latency, <strong>orders per minute</strong>, and
+outbox depth once it exists. Orders per minute is the important one: it is the
+metric that tells you a deploy broke money, and it does it in 60 seconds rather
+than at month end.</li>
+<li>Two alerts and only two, so that an alert still means something:
+orders/minute drops below 40% of the same hour last week; 5xx rate above 1% for
+5 minutes.</li>
+<li>Uptime check against <code>/health/ready</code> from outside the network.</li>
+</ul>
+<h3 id="migration--day-3--close-the-two-open-doors"><a class="anchor" href="#migration--day-3--close-the-two-open-doors" aria-label="Link to this section">#</a>Day 3 — Close the two open doors</h3>
+<p>The only code change of the week.</p>
+<ul>
+<li>Delete <code>POST /db/sql</code>. Replace with <code>GET /api/products</code> returning the fields the
+storefront actually renders — cost price and supplier are not among them.</li>
+<li>Remove the admin key from the client bundle; move admin auth to a header, from the
+environment, compared in constant time.</li>
+<li>Bind the coupon parameter (SEC-3). One line, and it closes the injection.</li>
+</ul>
+<p><em>Rollback: single revert, behind <code>LEGACY_SQL_ENDPOINT=on</code> for 48 hours in case an
+internal tool nobody mentioned was using it. Flag deleted on day 5.</em></p>
+<h3 id="migration--day-34--a-path-to-production"><a class="anchor" href="#migration--day-34--a-path-to-production" aria-label="Link to this section">#</a>Day 3–4 — A path to production</h3>
+<ul>
+<li>CI pipeline: install, secret scan, lint, test. It runs on every push from the first
+day, when there are three tests, because a pipeline introduced later is a pipeline
+people argue about. → <a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/.github/workflows/ci.yml" target="_blank" rel="noopener" class="ext"><code>ci.yml</code></a></li>
+<li>Branch protection on <code>main</code>: CI green, one review.</li>
+<li>A staging environment that is a real deploy of the same artefact.</li>
+<li>One-command deploy and one-command rollback. <strong>Then roll back a real deploy on
+purpose, in the afternoon, with everyone watching.</strong> Nobody trusts a rollback they
+have not seen work.</li>
+</ul>
+<h3 id="migration--day-5--the-safety-net-starts"><a class="anchor" href="#migration--day-5--the-safety-net-starts" aria-label="Link to this section">#</a>Day 5 — The safety net starts</h3>
+<ul>
+<li>Write the first characterization tests around checkout: the current behaviour,
+recorded as it is, including the bits that are wrong.</li>
+<li>Publish the <strong>known-wrong behaviours</strong> list alongside them, so nobody &quot;fixes&quot; a
+test that is deliberately encoding a defect.</li>
+<li>Add the flag mechanism (environment-driven, percentage-based) with no consumers yet.</li>
+</ul>
+<p>→ <a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/test/contract/checkout.contract.test.js" target="_blank" rel="noopener" class="ext"><code>checkout.contract.test.js</code></a></p>
+<h3 id="migration--week-1-exit-criteria"><a class="anchor" href="#migration--week-1-exit-criteria" aria-label="Link to this section">#</a>Week 1 exit criteria</h3>
+<p>Every one of these is a yes/no that someone can check:</p>
+<ul>
+<li class="task">Every credential rotated; old ones revoked; secret scanning blocks commits</li>
+<li class="task">A database restore performed, timed, documented</li>
+<li class="task">Errors visible in a tool; two alerts live; one fired in a drill</li>
+<li class="task"><code>POST /db/sql</code> gone; admin key out of the client; coupon parameter bound</li>
+<li class="task">CI green on <code>main</code>; a deploy rolled back on purpose</li>
+<li class="task">Characterization tests running on the checkout path</li>
+</ul>
+<p><strong>What has not happened:</strong> no refactoring, no restructuring, no architecture. The
+codebase is exactly as ugly as it was on Monday and dramatically less dangerous. That
+distinction is the whole point of the week, and it is worth saying out loud to a team
+that expects the new person to arrive and start rearranging furniture.</p>
+<hr>
+<h2 id="migration--3-month-1--the-first-seam-and-the-money"><a class="anchor" href="#migration--3-month-1--the-first-seam-and-the-money" aria-label="Link to this section">#</a>3. Month 1 — the first seam, and the money</h2>
+<h3 id="migration--week-2--build-the-seam-dark"><a class="anchor" href="#migration--week-2--build-the-seam-dark" aria-label="Link to this section">#</a>Week 2 — Build the seam, dark</h3>
+<p>Introduce the target structure <em>alongside</em> the existing handler, not in place of it:</p>
+<pre class="code"><code>src/
+  domain/        pricing, money        pure, no I/O, exhaustively testable
+  services/      checkout, catalog     use cases, own the transaction boundary
+  repositories/  product, coupon...    all SQL, bound parameters only
+  http/          routes, validation    parse, delegate, map. nothing else</code></pre>
+<p>Extract <strong>one</strong> endpoint end to end — <code>POST /api/orders</code>, the highest-value and
+highest-risk one — as the reference implementation. Ship it behind <code>ORDERS_V2</code> at 0%.
+Nothing changes for anyone.</p>
+<p>The detailed before/after is <a href="#refactor">deliverable 3</a>.</p>
+<p><em>Why the riskiest one first: it is the one that pays for the effort, it is the one the
+team most needs to see done safely, and the pattern it establishes has to survive
+contact with the hardest case. A reference implementation extracted from an easy
+endpoint teaches nothing about the hard ones.</em></p>
+<h3 id="migration--week-23--shadow-then-ramp"><a class="anchor" href="#migration--week-23--shadow-then-ramp" aria-label="Link to this section">#</a>Week 2–3 — Shadow, then ramp</h3>
+<p><strong>Shadow mode.</strong> For every checkout, run both implementations, serve the legacy
+result, and log a structured diff when they disagree. Real traffic, real carts, real
+coupons, zero customer risk.</p>
+<p>Expect diffs. They fall into three buckets:</p>
+<div class="table-wrap"><table><thead><tr><th>Bucket</th><th>Action</th></tr></thead><tbody><tr><td>We got it wrong</td><td>Fix v2. Most diffs, first two days.</td></tr><tr><td>Legacy is wrong and we intended to fix it</td><td>Add to the intended-differences list, with a decision attached</td></tr><tr><td>Legacy is wrong and we did <em>not</em> know</td><td>Stop. This is a new discovery — take it to the business.</td></tr></tbody></table></div>
+<p>The third bucket is why shadow mode earns its cost. It finds the defects the
+assessment missed, at zero risk, before anyone depends on the new answer.</p>
+<p><strong>Ramp</strong> once the only remaining diffs are the intended ones:</p>
+<div class="table-wrap"><table><thead><tr><th>Stage</th><th>Traffic</th><th>Hold</th><th>Abort if</th></tr></thead><tbody><tr><td>1</td><td>1%</td><td>24h</td><td>any unintended diff; error rate up at all</td></tr><tr><td>2</td><td>10%</td><td>24h</td><td>orders/minute down &gt;2% vs control; p95 up &gt;20%</td></tr><tr><td>3</td><td>50%</td><td>48h</td><td>same, plus any support ticket mentioning price</td></tr><tr><td>4</td><td>100%</td><td>1 week</td><td>same</td></tr></tbody></table></div>
+<p><em>Rollback at every stage: set the flag to 0%. Effective in seconds, no deploy. This is
+why the flag is environment-driven and not a code constant.</em></p>
+<p>Delete the legacy handler at the end of the 100% week. <strong>Ticket already written,
+already in the sprint.</strong></p>
+<h3 id="migration--week-3--money-via-expandcontract"><a class="anchor" href="#migration--week-3--money-via-expandcontract" aria-label="Link to this section">#</a>Week 3 — Money, via expand/contract</h3>
+<p>The database stores prices as <code>REAL</code>. Fixing that is a data migration on a live table,
+so it is six releases, not one. This sequence is the plan&#39;s answer to &quot;how do you
+change the shape of production without stopping it&quot;:</p>
+<ol>
+<li><strong>Expand.</strong> Add <code>price_minor INTEGER</code> (nullable). Deploy. Nothing reads it. Old
+code is entirely unaffected — it does not know the column exists.</li>
+<li><strong>Dual-write.</strong> New writes populate both <code>price</code> and <code>price_minor</code>. Deploy. Reads
+still come from <code>price</code>.</li>
+<li><strong>Backfill.</strong> Batched, throttled, resumable, off-peak. Runs as a script with a
+progress log, not a single <code>UPDATE</code> holding a lock on a live table.</li>
+<li><strong>Reconcile.</strong> A scheduled job asserts <code>price_minor = ROUND(price * 100)</code> for every
+row and alerts on any mismatch. Let it run clean for 48 hours. <strong>This step is
+non-negotiable and it is the one people skip.</strong></li>
+<li><strong>Contract, part one.</strong> Reads switch to <code>price_minor</code>, behind its own flag, ramped
+like any other change. Writes still populate both.</li>
+<li><strong>Contract, part two.</strong> Two weeks later, with reconciliation still clean: stop
+writing <code>price</code>, then drop it in a subsequent release.</li>
+</ol>
+<p>Every step is independently deployable and independently reversible. At no point does
+a running instance of the previous release encounter a schema it cannot handle.</p>
+<p>Same pattern for <code>orders</code>, where it matters more: those rows are financial records.</p>
+<p><em>The wire format does not change here.</em> Responses keep the decimal fields and <strong>gain</strong>
+exact <code>*_minor</code> integers alongside. Clients migrate when they migrate; the decimals get
+deprecated once the access logs show nobody reads them.
+→ <a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/refactored/src/http/dto.js" target="_blank" rel="noopener" class="ext"><code>dto.js</code></a></p>
+<h3 id="migration--week-34--transactions-stock-and-the-outbox"><a class="anchor" href="#migration--week-34--transactions-stock-and-the-outbox" aria-label="Link to this section">#</a>Week 3–4 — Transactions, stock, and the outbox</h3>
+<ul>
+<li>Wrap the order write and the stock decrements in one transaction.</li>
+<li>Replace check-then-write with an atomic guarded update:
+<code>UPDATE products SET stock = stock - ? WHERE id = ? AND stock &gt;= ?</code>, checking
+<code>changes</code>. Correct on any database, including ones with genuine parallelism.</li>
+<li>Introduce the outbox table. The confirmation email becomes a row committed with the
+order, dispatched by a worker afterwards, with retries and backoff.</li>
+<li>Backfill safety: a one-off report of every product with negative stock, for support
+to work through. <strong>The fix stops new occurrences; it does not clean up the old ones,
+and pretending otherwise is how a &quot;fixed&quot; bug reappears as a support complaint.</strong></li>
+</ul>
+<p><em>Rollback: the outbox worker is a separate process. Stopping it queues messages rather
+than losing them — the failure mode is delay, which is the point.</em></p>
+<h3 id="migration--week-4--hand-it-over"><a class="anchor" href="#migration--week-4--hand-it-over" aria-label="Link to this section">#</a>Week 4 — Hand it over</h3>
+<ul>
+<li>A <strong>second</strong> engineer extracts the next endpoint, using week 2&#39;s work as the
+template. I review; I do not write it.</li>
+<li>Their questions become the seam documentation, because their questions are the ones
+the next person will have.</li>
+<li>Retro on the pattern. Change it based on what they found awkward. <strong>If the pattern
+only works when I do it, it is not a pattern, it is a preference.</strong></li>
+</ul>
+<h3 id="migration--month-1-exit-criteria"><a class="anchor" href="#migration--month-1-exit-criteria" aria-label="Link to this section">#</a>Month 1 exit criteria</h3>
+<ul>
+<li class="task">Checkout fully on v2 at 100%; legacy checkout handler <strong>deleted</strong></li>
+<li class="task">Quote and checkout share one pricing function — divergence structurally impossible</li>
+<li class="task">Money is integer minor units end to end; reconciliation clean for two weeks</li>
+<li class="task">Stock cannot go negative; proven by a concurrency test in CI</li>
+<li class="task">Confirmation emails survive a provider outage</li>
+<li class="task">A second engineer has migrated an endpoint alone</li>
+<li class="task">Deploys are daily and unremarkable</li>
+</ul>
+<hr>
+<h2 id="migration--4-quarter-1--finish-it-and-make-it-not-need-me"><a class="anchor" href="#migration--4-quarter-1--finish-it-and-make-it-not-need-me" aria-label="Link to this section">#</a>4. Quarter 1 — finish it, and make it not need me</h2>
+<h3 id="migration--month-2--volume-and-the-platform-underneath"><a class="anchor" href="#migration--month-2--volume-and-the-platform-underneath" aria-label="Link to this section">#</a>Month 2 — Volume, and the platform underneath</h3>
+<p><strong>Endpoint migration at ~2 per week, done by the team.</strong> My role is review. The
+remaining endpoints are simpler than checkout; the pattern is established; the
+interesting decisions are made.</p>
+<p>Running alongside:</p>
+<ul>
+<li><strong>Database hardening.</strong> Application connects as a least-privilege role, not a
+superuser. Connection pooling with sensible limits. Indexes chosen from the actual
+slow query log rather than intuition. Fix the N+1 in cart pricing — visible in the
+logs now that there are logs.</li>
+<li><strong>Authentication.</strong> Per-user admin accounts with an audit trail, replacing the shared
+key. Sequential order ids replaced by unguessable public ids (see §5).</li>
+<li><strong>Frontend.</strong> A typed API client generated from the OpenAPI description, so a
+breaking change fails a build instead of a checkout. The storefront stops knowing
+anything about the database.</li>
+<li><strong>Dependencies.</strong> Lockfile committed, automated update PRs, a standing 2-hour Friday
+slot to merge them. Little and often, so it never becomes a project.</li>
+<li><strong>Data retention.</strong> Log retention policy, PII purge for the historical logs, and the
+compliance conversation from the assessment closed out.</li>
+</ul>
+<h3 id="migration--month-3--durability"><a class="anchor" href="#migration--month-3--durability" aria-label="Link to this section">#</a>Month 3 — Durability</h3>
+<ul>
+<li><strong>Performance, with evidence.</strong> A load test that reproduces last Diwali&#39;s peak.
+Fix what it finds. Publish before/after numbers.</li>
+<li><strong>Runbooks and on-call.</strong> One page per failure mode: symptom, check, action,
+escalation. A game day where we deliberately break staging and follow them. On-call
+rotation only after the runbooks exist — a rota without runbooks is just spreading
+the anxiety around.</li>
+<li><strong>Delete the rest of the legacy paths.</strong> The strangler completes. Feature flags for
+completed migrations are removed; a permanent flag is technical debt with a nicer
+name.</li>
+<li><strong>Post-migration review.</strong> What the estimates got wrong, what shadow mode caught
+that review did not, what to do differently.</li>
+<li><strong>Decide on TypeScript with evidence</strong> rather than taste: how many of this quarter&#39;s
+bugs would types have caught? If the answer is &quot;few&quot;, the answer is no. If it is
+yes, the path is <code>checkJs</code> plus JSDoc, file by file, not a big-bang conversion.</li>
+</ul>
+<h3 id="migration--quarter-1-exit-criteria"><a class="anchor" href="#migration--quarter-1-exit-criteria" aria-label="Link to this section">#</a>Quarter 1 exit criteria</h3>
+<ul>
+<li class="task">No route handler contains business logic — <strong>enforced by a test</strong>, not a rule</li>
+<li class="task">One source of truth for pricing; no SQL outside repositories</li>
+<li class="task">All legacy handlers and completed flags deleted</li>
+<li class="task">Restore drill and game day both performed, both documented</li>
+<li class="task">Any engineer can ship to production on their first day</li>
+<li class="task">Change failure rate under 15%; MTTR under 30 minutes; both measured, not guessed</li>
+</ul>
+<hr>
+<h2 id="migration--5-changes-that-cannot-be-behaviour-preserving"><a class="anchor" href="#migration--5-changes-that-cannot-be-behaviour-preserving" aria-label="Link to this section">#</a>5. Changes that cannot be behaviour-preserving</h2>
+<p>Most of this plan hides behind a flag because the outside world cannot tell the
+difference. Three changes are visible, and they need a different process — a decision
+from someone who is not an engineer, and a rollout that involves people rather than
+percentages.</p>
+<p><strong>The pricing fix (COR-3).</strong> Some customers will be charged less than before. That is
+the correct outcome and it is still a revenue change; finance decides, not me. The
+three years of incorrect invoices are a separate remediation, sized by engineering and
+decided by leadership.</p>
+<p><strong>Order lookup by public id (SEC-5).</strong> <code>GET /api/orders/41</code> must stop working, and two
+integrations use it. Process: add the new endpoint, contact both integrators with a
+90-day window, log every call to the old route with its caller, chase the stragglers
+by name, and turn it off when the log is empty for two weeks — not when the calendar
+says so. <em>A deprecation window measured in dates rather than in observed traffic is a
+guess.</em></p>
+<p><strong>Error envelope v2.</strong> Correct status codes (409 for out-of-stock, 201 for created) and
+a structured error body. Shipped as an opt-in <code>Accept: application/vnd.orderdesk.v2</code>
+header first; the default flips only when the logs show the old shape is unused. Until
+then the new code deliberately returns the old strings and the old statuses, with
+machine-readable codes added beside them.
+→ <a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/refactored/src/domain/errors.js" target="_blank" rel="noopener" class="ext"><code>errors.js</code></a></p>
+<hr>
+<h2 id="migration--6-what-could-go-wrong-with-the-plan-itself"><a class="anchor" href="#migration--6-what-could-go-wrong-with-the-plan-itself" aria-label="Link to this section">#</a>6. What could go wrong with the plan itself</h2>
+<div class="table-wrap"><table><thead><tr><th>Risk</th><th>Signal</th><th>Response</th></tr></thead><tbody><tr><td>Shadow diffs never converge</td><td>Still finding new diff classes after a week</td><td>Stop. The rules are not what anyone thinks they are. Get finance to write them down before writing more code.</td></tr><tr><td>Migration time gets eaten by features</td><td>Two sprints with no migration ticket closed</td><td>Escalate with the dashboard, not with a complaint. &quot;Change failure rate went back up&quot; is an argument; &quot;we need more time for tech debt&quot; is not.</td></tr><tr><td>The team does not adopt the pattern</td><td>Second engineer&#39;s extraction looks nothing like the first</td><td>My documentation failed, not their attention. Pair on the third one.</td></tr><tr><td>A canary looks fine and is not</td><td>Diffs are clean but support tickets rise</td><td>Watch support volume as a ramp metric, not just the technical ones.</td></tr><tr><td>I become the single point of knowledge</td><td>Questions all route to me</td><td>The week-4 handover is not optional. If it slips, everything else slips behind it.</td></tr><tr><td>Reconciliation finds pre-existing bad data</td><td>Mismatches during the money backfill that predate us</td><td>Expected. Quarantine and report; do not silently &quot;correct&quot; financial records.</td></tr></tbody></table></div>
+<hr>
+<h2 id="migration--7-not-this-quarter"><a class="anchor" href="#migration--7-not-this-quarter" aria-label="Link to this section">#</a>7. Not this quarter</h2>
+<p>Kubernetes. Microservices. A new frontend framework. Event sourcing. A data warehouse.
+GraphQL. Multi-region.</p>
+<p>Every one of them is a defensible idea and none of them solves a problem this business
+has in the next 90 days. The list exists so that when somebody proposes one in month
+two, the answer is a reference rather than an argument.</p>
+<hr>
+<p><strong>Next:</strong> <a href="#refactor">Before/after refactor →</a></p>
+</article>
+    </section>
+    <section class="panel" id="panel-refactor" data-panel="refactor" hidden>
+      <p class="doc-kicker">Deliverable c &middot; 25 points</p>
+      <article class="prose"><h1 id="refactor--refactor--the-checkout-handler"><a class="anchor" href="#refactor--refactor--the-checkout-handler" aria-label="Link to this section">#</a>Refactor — the checkout handler</h1>
+<p>One endpoint, taken from the inherited code to the target structure, with the tests
+that made it safe and the defects it removes.</p>
+<p>Both versions are in this repository, both run, and the same test suite runs against
+both:</p>
+<div class="table-wrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>Before</strong></td><td><a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/legacy/server.js" target="_blank" rel="noopener" class="ext"><code>code/legacy/server.js</code></a> — <code>POST /api/orders</code>, 109 lines</td></tr><tr><td><strong>After</strong></td><td><a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/refactored/src/" target="_blank" rel="noopener" class="ext"><code>code/refactored/src/</code></a> — route, service, domain, repositories</td></tr><tr><td><strong>Proof it is safe</strong></td><td><a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/test/contract/checkout.contract.test.js" target="_blank" rel="noopener" class="ext"><code>checkout.contract.test.js</code></a> — 24 assertions, identical on both</td></tr><tr><td><strong>Proof it is better</strong></td><td><a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/test/differences/intended-differences.test.js" target="_blank" rel="noopener" class="ext"><code>intended-differences.test.js</code></a> — 17 assertions, each a defect</td></tr></tbody></table></div>
+<pre class="code"><code>npm test
+# tests 45  pass 45  fail 0     unit + architecture
+# tests 24  pass 24  fail 0     contract, run twice: legacy and refactored
+# tests 17  pass 17  fail 0     intended differences</code></pre>
+<hr>
+<h2 id="refactor--1-before"><a class="anchor" href="#refactor--1-before" aria-label="Link to this section">#</a>1. Before</h2>
+<p><code>POST /api/orders</code>, as inherited. Comments removed; this is the code.</p>
+<pre class="code" data-lang="js"><code>app.post(&#39;/api/orders&#39;, async (req, res) =&gt; {
+ try {
+  console.log(&#39;[order] incoming&#39;, JSON.stringify(req.body));
+
+  const { email, items, coupon, card } = req.body;
+
+  if (!items) {
+    return res.status(400).json({ error: &#39;no items&#39; });
+  }
+
+  let subtotal = 0;
+  const lines = [];
+  for (const item of items) {
+    const p = await db.get(&#39;SELECT * FROM products WHERE id = &#39; + item.productId);
+    if (!p) {
+      return res.status(400).json({ error: &#39;bad product&#39; });
+    }
+    if (p.stock &lt; item.qty) {
+      return res.status(400).json({ error: &#39;out of stock: &#39; + p.name });
+    }
+    subtotal += p.price * item.qty;
+    lines.push({ productId: p.id, name: p.name, qty: item.qty, price: p.price });
+  }
+
+  subtotal = Math.round(subtotal * 100) / 100;
+
+  const shipping = subtotal &gt;= FREE_SHIPPING_OVER ? 0 : SHIPPING_FEE;
+
+  const preTax = subtotal + shipping;
+  const tax = Math.round(preTax * TAX_RATE * 100) / 100;
+
+  let discount = 0;
+  if (coupon) {
+    const c = await db.get(&quot;SELECT * FROM coupons WHERE code = &#39;&quot; + coupon + &quot;&#39; AND active = 1&quot;);
+    if (c) {
+      if (c.kind === &#39;percent&#39;) {
+        discount = Math.round(subtotal * (c.value / 100) * 100) / 100;
+      } else {
+        discount = c.value;
+      }
+    }
+  }
+
+  const total = Math.round((preTax + tax - discount) * 100) / 100;
+
+  const result = await db.run(
+    &#39;INSERT INTO orders (email, items, subtotal, discount, shipping, tax, total, coupon, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)&#39;,
+    [email, JSON.stringify(lines), subtotal, discount, shipping, tax, total,
+     coupon || null, &#39;paid&#39;, new Date().toISOString()],
+  );
+
+  for (const item of items) {
+    await db.run(
+      &#39;UPDATE products SET stock = stock - &#39; + item.qty + &#39; WHERE id = &#39; + item.productId,
+    );
+  }
+
+  if (card) {
+    console.log(&#39;[order] charging card ending&#39;, String(card.number).slice(-4),
+                &#39;via&#39;, config.payments.secretKey);
+  }
+
+  await sendConfirmationEmail(email, result.lastInsertRowid, total);
+
+  res.json({ id: result.lastInsertRowid, subtotal, discount, shipping, tax, total, status: &#39;paid&#39; });
+ } catch (e) {
+  console.error(e);
+  res.status(500).json({ error: e.message, stack: e.stack });
+ }
+});</code></pre>
+<p>It is not incompetent code. It is what one person under deadline pressure writes, and
+then extends eleven times over four years. Every individual line is reasonable. The
+problem is that there is nowhere else for any of it to go.</p>
+<hr>
+<h2 id="refactor--2-what-is-actually-wrong-with-it"><a class="anchor" href="#refactor--2-what-is-actually-wrong-with-it" aria-label="Link to this section">#</a>2. What is actually wrong with it</h2>
+<p>Not &quot;it&#39;s long&quot;. Long is a symptom. Eight concrete defects, each of which follows from
+the same cause — <strong>there is no place in this codebase for a rule to live, so rules live
+wherever they were first needed, and get copied when they are needed again.</strong></p>
+<ol>
+<li><strong>Pricing is duplicated, and the copies disagree.</strong> The same rules exist in
+<code>POST /api/quote</code>, written six months earlier, which subtracts the coupon <em>before</em>
+tax. This handler subtracts it <em>after</em>. Every coupon order charges the customer 18%
+of their discount extra.</li>
+<li><strong>Money is floating point.</strong> <code>Math.round(x * 100) / 100</code> is wrong whenever the float
+sits just below a half-paise boundary. <code>5.35 × 3 × 10%</code> gives ₹1.60; the answer is
+₹1.61.</li>
+<li><strong>Check-then-write across an await.</strong> <code>SELECT stock</code> → <code>if</code> → <code>UPDATE</code>. Two
+concurrent orders both pass the check.</li>
+<li><strong>No transaction.</strong> The insert and each stock update are separate writes. A crash
+between them leaves an order with no stock movement, or the reverse.</li>
+<li><strong>A third party is inside the request.</strong> The confirmation email is awaited before
+responding. Provider down → 500 → customer retries → duplicate order, already paid.</li>
+<li><strong>String-concatenated SQL.</strong> The coupon field is a SQL console.</li>
+<li><strong>No validation.</strong> <code>qty: -5</code> produces a negative total and returns stock.</li>
+<li><strong>Nothing is testable.</strong> To assert anything about pricing you must start a web
+server and a database, POST a cart, and read a number out of a JSON body. So nobody
+does.</li>
+</ol>
+<p>And the compounding one: <strong>you cannot fix any of these in isolation.</strong> Fixing the
+pricing means editing a function that also writes to the database and sends email, and
+there is no test to tell you whether you broke the other two.</p>
+<hr>
+<h2 id="refactor--3-the-safety-net-before-touching-anything"><a class="anchor" href="#refactor--3-the-safety-net-before-touching-anything" aria-label="Link to this section">#</a>3. The safety net, before touching anything</h2>
+<p>The first commit of this refactor contains no refactoring. It is
+<a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/test/contract/checkout.contract.test.js" target="_blank" rel="noopener" class="ext">24 assertions</a> describing what the
+system does today, written by observing it.</p>
+<p>They are <strong>black box, over HTTP, against the process</strong>. Not a stylistic choice: the
+inherited code has no seams. <code>server.js</code> opens a database at import time and does
+everything else inside route handlers, so there is nothing to inject and nothing to
+construct. The tests go at the highest level available, because it is the only level
+that exists.</p>
+<p>That constraint turns into the biggest advantage of the whole exercise:</p>
+<pre class="code" data-lang="js"><code>for (const target of TARGETS) {          // [&#39;legacy&#39;, &#39;refactored&#39;]
+  test(`contract [${target}]`, async (t) =&gt; {
+    const app = await startTarget(target);
+    ...</code></pre>
+<p><strong>The same file runs against both systems.</strong> A test only the new code can pass proves
+nothing about the migration. This one proves the two are interchangeable, which is
+exactly the claim that has to be true before traffic moves.</p>
+<p>Two assertions deliberately encode behaviour that is <em>wrong</em>:</p>
+<pre class="code" data-lang="js"><code>await t.test(&#39;checkout: rejects a basket larger than available stock&#39;, async () =&gt; {
+  assert.equal(status, 400);        // 409 is the correct status. 400 is what we return.
+  assert.equal(body.error, &#39;out of stock: Cold Brew Bottle&#39;);   // a string, not a code
+});</code></pre>
+<p>That is the discipline. A characterization test records reality, including the parts
+you dislike. Opinions go in the differences suite, one at a time, each with a decision
+attached. Mixing the two is how a &quot;pure refactor&quot; quietly ships a behaviour change.</p>
+<hr>
+<h2 id="refactor--4-after"><a class="anchor" href="#refactor--4-after" aria-label="Link to this section">#</a>4. After</h2>
+<h3 id="refactor--the-route--parse-delegate-map"><a class="anchor" href="#refactor--the-route--parse-delegate-map" aria-label="Link to this section">#</a>The route — parse, delegate, map</h3>
+<pre class="code" data-lang="js"><code>router.post(&#39;/orders&#39;, asyncRoute(async (req, res) =&gt; {
+  const cart = parseCart(req.body, { requireEmail: true });
+  const result = await checkoutService.placeOrder(cart);
+  req.log.info(&#39;order placed&#39;, {
+    orderId: result.orderId, publicId: result.publicId, totalMinor: result.priced.totalMinor,
+  });
+  res.status(200).json(toOrderCreated(result));
+}));</code></pre>
+<p>No arithmetic, no SQL, no <code>try</code>/<code>catch</code>, no branching on business rules. Errors are
+thrown where they are detected and translated once, centrally. A handler that grows a
+fourth responsibility is the review comment.
+→ <a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/refactored/src/http/routes/checkout.routes.js" target="_blank" rel="noopener" class="ext"><code>checkout.routes.js</code></a></p>
+<h3 id="refactor--the-domain--pure-and-the-only-place-prices-are-decided"><a class="anchor" href="#refactor--the-domain--pure-and-the-only-place-prices-are-decided" aria-label="Link to this section">#</a>The domain — pure, and the only place prices are decided</h3>
+<pre class="code" data-lang="js"><code>function priceOrder({ lines, coupon = null, policy }) {
+  const pricedLines = lines.map((line) =&gt; {
+    assertMinor(line.unitPriceMinor);
+    if (!Number.isSafeInteger(line.qty) || line.qty &lt;= 0) throw new TypeError(...);
+    return { ...line, lineTotalMinor: line.unitPriceMinor * line.qty };
+  });
+
+  const subtotalMinor = pricedLines.reduce((sum, l) =&gt; sum + l.lineTotalMinor, 0);
+  const discountMinor = discountFor(subtotalMinor, coupon);
+  const shippingMinor = subtotalMinor &gt;= policy.freeShippingThresholdMinor
+    ? 0 : policy.shippingFeeMinor;
+
+  const taxableMinor = subtotalMinor - discountMinor + shippingMinor;
+  const taxMinor     = applyBasisPoints(taxableMinor, policy.taxBasisPoints);
+
+  return { lines: pricedLines, subtotalMinor, discountMinor, shippingMinor, taxMinor,
+           totalMinor: taxableMinor + taxMinor };
+}</code></pre>
+<p>No database, no express, no clock, no configuration lookup. Everything arrives as an
+argument. Integers throughout — the rounding decision happens once, explicitly, in
+<code>applyBasisPoints</code>, instead of eleven times implicitly in <code>Math.round</code>.
+→ <a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/refactored/src/domain/pricing.js" target="_blank" rel="noopener" class="ext"><code>pricing.js</code></a> ·
+<a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/refactored/src/domain/money.js" target="_blank" rel="noopener" class="ext"><code>money.js</code></a></p>
+<h3 id="refactor--the-service--owns-what-is-atomic-with-what"><a class="anchor" href="#refactor--the-service--owns-what-is-atomic-with-what" aria-label="Link to this section">#</a>The service — owns what is atomic with what</h3>
+<pre class="code" data-lang="js"><code>async function placeOrder({ email, items, couponCode }) {
+  const { priced, coupon } = await buildPricedOrder({ items, couponCode });
+  const publicId = newPublicId();
+  const now = clock();
+
+  const orderId = await db.transaction((tx) =&gt; {
+    for (const line of priced.lines) {
+      const reserved = productRepo.reserveStockInTx(tx, line.productId, line.qty);
+      if (!reserved) {
+        const current = productRepo.findByIdInTx(tx, line.productId);
+        throw new OutOfStockError(line.name, line.qty, current ? current.stock : 0);
+      }
+    }
+    const id = orderRepo.insertInTx(tx, { publicId, email, status: &#39;paid&#39;, createdAt: now,
+                                          couponCode: coupon?.code ?? null, ...priced });
+    outboxRepo.enqueueInTx(tx, { topic: &#39;order.confirmation_email&#39;,
+                                 payload: { orderId: id, publicId, email,
+                                            totalMinor: priced.totalMinor }, now });
+    return id;
+  });
+
+  return { orderId, publicId, priced, createdAt: now };
+}</code></pre>
+<p>Everything that must be all-or-nothing is inside the transaction, and nothing that must
+not be. <code>db.transaction()</code> <strong>throws if its callback returns a promise</strong> — the rule &quot;no
+I/O inside a transaction&quot; is enforced by the code rather than remembered by the author.
+→ <a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/refactored/src/services/checkout.service.js" target="_blank" rel="noopener" class="ext"><code>checkout.service.js</code></a> ·
+<a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/refactored/src/db/connection.js" target="_blank" rel="noopener" class="ext"><code>connection.js</code></a></p>
+<h3 id="refactor--the-repository--the-guard-is-in-the-where-clause"><a class="anchor" href="#refactor--the-repository--the-guard-is-in-the-where-clause" aria-label="Link to this section">#</a>The repository — the guard is in the WHERE clause</h3>
+<pre class="code" data-lang="js"><code>reserveStockInTx(tx, productId, qty) {
+  const result = tx.run(
+    &#39;UPDATE products SET stock = stock - ? WHERE id = ? AND stock &gt;= ?&#39;,
+    [qty, productId, qty],
+  );
+  return result.changes === 1;
+}</code></pre>
+<p>The check and the write are one statement the database serialises. This is correct on
+SQLite, on Postgres, and on anything else — it does not depend on the driver being
+synchronous or on the application being single-threaded.
+→ <a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/refactored/src/repositories/product.repo.js" target="_blank" rel="noopener" class="ext"><code>product.repo.js</code></a></p>
+<hr>
+<h2 id="refactor--5-what-improved"><a class="anchor" href="#refactor--5-what-improved" aria-label="Link to this section">#</a>5. What improved</h2>
+<p>Each row is asserted in the test suite; nothing here is a claim about how the code
+feels.</p>
+<div class="table-wrap"><table><thead><tr><th>Before</th><th>After</th><th>Defect removed</th><th>Evidence</th></tr></thead><tbody><tr><td>Pricing written twice, in two handlers</td><td>One <code>priceOrder()</code>, called by both</td><td>Quote ≠ charge on <strong>every</strong> coupon order</td><td>Matrix test: 30 carts, 0 divergences after, 100% of coupon carts before</td></tr><tr><td><code>price REAL</code>, <code>Math.round(x*100)/100</code></td><td>Integer paise, explicit half-up</td><td>₹1.60 where ₹1.61 was owed</td><td><code>applyBasisPoints(1605, 1000) === 161</code></td></tr><tr><td><code>SELECT stock</code> → <code>if</code> → <code>UPDATE</code></td><td>Guarded atomic <code>UPDATE</code>, checked <code>changes</code></td><td>Oversell: stock reached <strong>−2</strong></td><td>Two concurrent checkouts: 2 accepted before, 1 before/1 rejected after</td></tr><tr><td>Five independent writes</td><td>One transaction</td><td>Half-applied orders</td><td><code>transaction()</code> rejects async callbacks</td></tr><tr><td><code>await sendEmail()</code> in the request</td><td>Outbox row committed with the order, worker after</td><td>500 + duplicate orders on a provider blip</td><td>Provider fails → HTTP 200, order intact, retry recorded</td></tr><tr><td>Coupon concatenated into SQL</td><td>Bound parameter + input allowlist</td><td><code>X&#39; OR kind=&#39;fixed&#39; --</code> → free ₹50</td><td>Exploit works before, 400 after</td></tr><tr><td>No validation</td><td>Parsed at the edge, all errors at once</td><td><code>qty: -5</code> paid the customer and restocked</td><td>200 + negative total before, 400 after</td></tr><tr><td><code>SELECT *</code> to the browser</td><td>Explicit DTO</td><td>Cost price and supplier published publicly</td><td>Response keys asserted exactly</td></tr><tr><td><code>{ error, stack }</code> on failure</td><td>Generic message + request id; stack to the log</td><td>Stack traces and internal IPs to customers</td><td>No response carries <code>stack</code></td></tr><tr><td><code>console.log(req.body)</code></td><td>Central redaction denylist</td><td>Card numbers in four years of logs</td><td><code>card</code>/<code>cvc</code>/<code>password</code> → <code>[redacted]</code></td></tr><tr><td>Secrets in <code>config.json</code></td><td>Env, validated at boot</td><td>Five live credentials in git</td><td>Boots without them → exit 78, <code>EX_CONFIG</code></td></tr><tr><td>Sequential order ids, no authz</td><td>Unguessable public id</td><td><code>/api/orders/41</code> leaked any order</td><td>200 before, 404 after; token holder still 200</td></tr></tbody></table></div>
+<h3 id="refactor--and-the-thing-that-is-hardest-to-put-in-a-table"><a class="anchor" href="#refactor--and-the-thing-that-is-hardest-to-put-in-a-table" aria-label="Link to this section">#</a>And the thing that is hardest to put in a table</h3>
+<p><strong>Before:</strong> to assert anything about pricing you started a web server and a database.
+There were zero unit tests and there was no way to write one.</p>
+<p><strong>After:</strong> <code>pricing.test.js</code> checks <strong>8,000+ price combinations</strong> — every coupon type,
+quantities 1–5, the full realistic price range — asserting that totals are integers,
+never negative, that discounts never exceed the goods, and that the breakdown always
+adds up. It runs in <strong>under 40 milliseconds</strong>, with no server, no database, no fixture
+file and no mock.</p>
+<p>That is the actual return on pulling logic out of a route handler. Not elegance —
+<strong>the ability to ask questions cheaply.</strong> The team can now answer &quot;what happens if a
+coupon is worth more than the basket&quot; in thirty seconds instead of by reasoning about
+it in a meeting.</p>
+<h3 id="refactor--size"><a class="anchor" href="#refactor--size" aria-label="Link to this section">#</a>Size</h3>
+<div class="table-wrap"><table><thead><tr><th></th><th>Lines of code</th></tr></thead><tbody><tr><td>Legacy checkout handler</td><td><strong>74</strong> (109 with comments)</td></tr><tr><td>Route handler</td><td>6</td></tr><tr><td>Validation</td><td>57 (shared with quote)</td></tr><tr><td>Service</td><td>76 (three methods)</td></tr><tr><td>Pricing + money domain</td><td>72 (shared with quote, refunds, admin, imports)</td></tr></tbody></table></div>
+<p>Total is larger. That is the correct outcome and worth being explicit about: <strong>the
+refactor did not make the code smaller, it made it addressable.</strong> 74 lines that can
+only be executed by an HTTP request became five units that can each be executed in
+isolation, three of which are now reused by other endpoints instead of copied into
+them.</p>
+<hr>
+<h2 id="refactor--6-three-decisions-worth-defending"><a class="anchor" href="#refactor--6-three-decisions-worth-defending" aria-label="Link to this section">#</a>6. Three decisions worth defending</h2>
+<p><strong>Preserving errors that are wrong.</strong> <code>OutOfStockError</code> returns HTTP 400 with the
+string <code>out of stock: Cold Brew Bottle</code>. 409 with a structured body is correct. But
+two integrations parse that string, and being right is not worth breaking someone
+else&#39;s production at 2am. Every domain error carries both a <code>legacyMessage</code> and a
+machine-readable <code>code</code>; the correct statuses ship behind a versioned <code>Accept</code> header
+and become the default when the logs show the old shape is unused.
+→ <a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/refactored/src/domain/errors.js" target="_blank" rel="noopener" class="ext"><code>errors.js</code></a></p>
+<p><strong>Emitting money twice.</strong> Responses carry both the decimal <code>total: 470.82</code> the
+storefront already parses and the exact <code>totalMinor: 47082</code> new clients should use.
+Additive, so no coordinated release with three integrators; the decimals get deprecated
+on evidence rather than on a date.
+→ <a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/refactored/src/http/dto.js" target="_blank" rel="noopener" class="ext"><code>dto.js</code></a></p>
+<p><strong>Not making the domain clever.</strong> <code>priceOrder</code> is a flat function with six steps and no
+strategy pattern, no rule engine and no plugin registry. It handles two coupon kinds
+because there are two coupon kinds. When a third arrives it will be an <code>if</code>; when the
+sixth arrives, that is the moment to design an abstraction — with five real examples
+to design against rather than an imagined future.</p>
+<hr>
+<h2 id="refactor--7-what-i-did-not-change"><a class="anchor" href="#refactor--7-what-i-did-not-change" aria-label="Link to this section">#</a>7. What I did not change</h2>
+<ul>
+<li><strong>The URLs, the request shapes, and the response fields.</strong> Every existing client
+keeps working.</li>
+<li><strong><code>GET /api/quote</code> internals</strong> — not yet. It gets deleted and re-pointed at
+<code>checkoutService.quote()</code> in the same PR series, but as a separate commit, so the
+diff for each is reviewable.</li>
+<li><strong>express.</strong> Not the problem.</li>
+<li><strong>The variable names in the parts of <code>server.js</code> I did not touch.</strong> Tempting; adds
+diff noise; costs review attention that should go to the money code.</li>
+</ul>
+<hr>
+<h2 id="refactor--8-how-this-ships"><a class="anchor" href="#refactor--8-how-this-ships" aria-label="Link to this section">#</a>8. How this ships</h2>
+<p>Not as one pull request. Six, each independently deployable and independently
+revertible:</p>
+<ol>
+<li>Contract tests, against the legacy system, no production change</li>
+<li><code>domain/</code> and <code>repositories/</code>, unreferenced by any route</li>
+<li><code>checkoutService</code>, unreferenced, unit tested</li>
+<li>v2 route behind <code>ORDERS_V2=0</code> — dead code in production</li>
+<li>Shadow mode: both run, legacy served, diffs logged</li>
+<li>Ramp 1% → 10% → 50% → 100%, then <strong>delete the legacy handler</strong></li>
+</ol>
+<p>Step 6&#39;s deletion ticket is written at the same time as step 1. A strangler migration
+that never removes the old code leaves two systems instead of one.</p>
+<p>Full sequence, with abort criteria at each stage:
+<a href="#migration--3-month-1--the-first-seam-and-the-money">Migration plan §3</a>.</p>
+<hr>
+<p><strong>Next:</strong> <a href="#standards">Engineering standards →</a></p>
+</article>
+    </section>
+    <section class="panel" id="panel-standards" data-panel="standards" hidden>
+      <p class="doc-kicker">Deliverable d &middot; 20 points</p>
+      <article class="prose"><h1 id="standards--engineering-standards--orderdesk"><a class="anchor" href="#standards--engineering-standards--orderdesk" aria-label="Link to this section">#</a>Engineering standards — OrderDesk</h1>
+<p>What I would introduce, and how I would get a team that did not ask for any of it to
+actually use it.</p>
+<p>The second half is the hard part. Standards documents are easy to write and almost
+always ignored, and the reason is rarely that the standards were wrong.</p>
+<hr>
+<h2 id="standards--part-one--the-standards"><a class="anchor" href="#standards--part-one--the-standards" aria-label="Link to this section">#</a>Part one — the standards</h2>
+<h3 id="standards--0-the-two-rules-about-rules"><a class="anchor" href="#standards--0-the-two-rules-about-rules" aria-label="Link to this section">#</a>0. The two rules about rules</h3>
+<p><strong>A rule a human has to remember is an aspiration. A rule CI enforces is a standard.</strong>
+Every item below names how it is checked. Where the answer is &quot;in review&quot;, it is a
+weaker rule and I have said so.</p>
+<p><strong>Four things are non-negotiable. Everything else is up for a vote.</strong> Secrets,
+money, migrations, and the transaction boundary — those are safety, and I will
+overrule the team on them. Naming, file layout, comment style, test structure, how
+many blank lines: taste, and taste belongs to whoever maintains the code. Being
+explicit that the mandatory list is <em>short</em> is what makes it stick. A twelve-page
+standards document with no priority signals is read as &quot;the new person has opinions&quot;,
+and it is read once.</p>
+<hr>
+<h3 id="standards--1-definition-of-done"><a class="anchor" href="#standards--1-definition-of-done" aria-label="Link to this section">#</a>1. Definition of done</h3>
+<p>A change is done when:</p>
+<ul>
+<li class="task">It works, and there is a test that would fail if it stopped working</li>
+<li class="task">CI is green: secret scan, lint, tests</li>
+<li class="task">It is behind a flag if it changes behaviour customers can see</li>
+<li class="task">It can be rolled back without a database restore</li>
+<li class="task">It emits something — a log line, a metric — that would show it misbehaving</li>
+<li class="task">The next person can understand <em>why</em> from the code or the PR, not just <em>what</em></li>
+</ul>
+<p>Not on the list: documentation updated in a wiki nobody reads, a ticket moved to the
+right column, and a code coverage threshold. Each of those is either automated or not
+worth a checkbox.</p>
+<h3 id="standards--2-pull-requests"><a class="anchor" href="#standards--2-pull-requests" aria-label="Link to this section">#</a>2. Pull requests</h3>
+<div class="table-wrap"><table><thead><tr><th>Rule</th><th>Enforced by</th></tr></thead><tbody><tr><td>No direct pushes to <code>main</code></td><td>Branch protection</td></tr><tr><td>One approving review</td><td>Branch protection</td></tr><tr><td>CI green before merge</td><td>Branch protection</td></tr><tr><td>Under ~400 lines of diff</td><td>Review convention, bot warning over 400</td></tr><tr><td>One concern per PR</td><td>Review</td></tr><tr><td>Refactor and behaviour change never in the same PR</td><td>Review, and it is the one I am strictest about</td></tr></tbody></table></div>
+<p>That last one is the highest-value rule on this page. When a PR moves code <em>and</em>
+changes what it does, nobody can review either half, and when it breaks in production
+you cannot bisect the cause. Split it. Always.</p>
+<p>The 400-line limit is not about attention span; it is about honesty. Nobody reviews a
+900-line diff, they approve it. A limit that produces real review is worth more than
+a limit that produces polite approval.</p>
+<h3 id="standards--3-testing-standards"><a class="anchor" href="#standards--3-testing-standards" aria-label="Link to this section">#</a>3. Testing standards</h3>
+<ul>
+<li><strong>Characterization tests before any refactor.</strong> Record what the system does,
+including what it does wrong. → <a href="#refactor--3-the-safety-net-before-touching-anything">refactor §3</a></li>
+<li><strong>Contract tests run against old and new</strong> while both exist. A test only the new
+implementation can pass proves nothing about the migration.</li>
+<li><strong>Pure domain logic gets exhaustive unit tests.</strong> They are cheap; use thousands of
+cases, not three.</li>
+<li><strong>One integration test per route,</strong> through the real HTTP stack against a real
+database.</li>
+<li><strong>Do not mock the database.</strong> A mocked repository asserts that you called the
+function you wrote; it will happily pass while the SQL is wrong.</li>
+<li><strong>Every bug fix ships with the test that reproduces it.</strong> Written first, watched to
+fail, then fixed.</li>
+<li><strong>Coverage ratchets, it does not target.</strong> The number may not go down. There is no
+goal number. An 80% mandate produces tests written to raise a number, which are worse
+than no tests because they take time to maintain and catch nothing.</li>
+</ul>
+<h3 id="standards--4-architecture"><a class="anchor" href="#standards--4-architecture" aria-label="Link to this section">#</a>4. Architecture</h3>
+<p>Four layers, and the dependency arrow only points one way:</p>
+<pre class="code"><code>http/          parse, delegate, map errors. no arithmetic, no SQL
+services/      use cases. own the transaction boundary
+repositories/  all SQL. bound parameters only
+domain/        pure. no I/O, no clock, no config, no framework</code></pre>
+<p>Rules:</p>
+<ul>
+<li>No business logic in a route handler</li>
+<li>No SQL outside <code>repositories/</code></li>
+<li>Nothing interpolated into SQL, ever</li>
+<li><code>domain/</code> imports nothing outside <code>domain/</code></li>
+<li>No I/O inside a transaction</li>
+<li>Money is integer minor units everywhere; floats never touch an amount</li>
+<li>Timestamps are UTC ISO-8601</li>
+<li>Configuration is read in one place and validated at boot</li>
+<li>Errors are domain types; the HTTP mapping lives in exactly one file</li>
+</ul>
+<p><strong>Five of those are executable tests, not review comments:</strong>
+<a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/test/unit/architecture.test.js" target="_blank" rel="noopener" class="ext"><code>architecture.test.js</code></a> fails the build on
+interpolated SQL, on <code>process.env</code> outside the config module, on <code>domain/</code> importing
+anything external, on an HTTP file importing a repository, and on a route handler over
+20 lines. <code>db.transaction()</code> throws at runtime if its callback returns a promise.</p>
+<p>This matters more than it looks. The boundaries in this service are not held up by
+anyone&#39;s discipline or by my continued presence — they are held up by CI. That is the
+difference between an architecture and a diagram.</p>
+<h3 id="standards--5-operations"><a class="anchor" href="#standards--5-operations" aria-label="Link to this section">#</a>5. Operations</h3>
+<ul>
+<li><strong>Secrets never enter the repository.</strong> <code>.env.example</code> only. Pre-commit hook <em>and</em>
+CI. If one is caught: rotate first, then clean up — a secret that reached CI is
+already pushed, and pushed is leaked.</li>
+<li><strong>Migrations are expand/contract and forward-only.</strong> No rename, no destructive change
+in the same release that stops using a column. Deploys overlap.</li>
+<li><strong>Every deploy is revertible in one command,</strong> and we prove it monthly.</li>
+<li><strong>Every endpoint emits latency and error rate.</strong> Anything unmeasured is unowned.</li>
+<li><strong>Alerts must be actionable.</strong> An alert nobody acts on gets deleted, not muted. Two
+good alerts beat thirty ignored ones.</li>
+<li><strong>ADRs for decisions with a blast radius.</strong> One page: context, decision,
+alternatives, consequences. Written when the decision is made, never revised — a
+superseded ADR gets a successor, not an edit.</li>
+<li><strong>A runbook per failure mode:</strong> symptom, check, action, escalation.</li>
+</ul>
+<h3 id="standards--6-what-i-am-not-proposing-yet"><a class="anchor" href="#standards--6-what-i-am-not-proposing-yet" aria-label="Link to this section">#</a>6. What I am not proposing yet</h3>
+<p>TypeScript, a monorepo, a component library, GraphQL, 90% coverage, mandatory pairing,
+a linting rule for every preference.</p>
+<p>Each is defensible. None solves a problem this team has this quarter, and each one
+spends adoption credit I need for the four things that do. Revisit at the Q1 review,
+with evidence: <em>how many of last quarter&#39;s incidents would this have prevented?</em></p>
+<hr>
+<h2 id="standards--part-two--adoption"><a class="anchor" href="#standards--part-two--adoption" aria-label="Link to this section">#</a>Part two — adoption</h2>
+<h3 id="standards--1-resistance-is-information"><a class="anchor" href="#standards--1-resistance-is-information" aria-label="Link to this section">#</a>1. Resistance is information</h3>
+<p>The failure mode is to treat resistance as ignorance and respond with more explaining.
+Resistance to engineering standards is almost always rational, and it is worth
+diagnosing which of these it is before responding, because the four have completely
+different remedies:</p>
+<div class="table-wrap"><table><thead><tr><th>What they say</th><th>What it usually means</th><th>What works</th></tr></thead><tbody><tr><td>&quot;We don&#39;t have time for that&quot;</td><td>They are measured on features and this is not counted</td><td>Make the cost of <em>not</em> doing it visible in their terms: hours of unplanned work, deploys rolled back</td></tr><tr><td>&quot;We tried that before&quot;</td><td>A previous quality push was announced, stalled, and quietly abandoned</td><td>Ship something small and finish it. Credibility is the currency and it is earned in deliveries, not proposals</td></tr><tr><td>&quot;Our situation is different&quot;</td><td>Sometimes true. Often a fear of being judged</td><td>Ask what is different. Sometimes you learn why the code is that way. Occasionally you are wrong</td></tr><tr><td>Silent non-compliance</td><td>They think you will leave, or be overruled, and it will blow over</td><td>Consistency. This one is only solved by time</td></tr></tbody></table></div>
+<p>And the one nobody says out loud: <strong>the person who wrote this code is in the room.</strong>
+Every criticism of the codebase is heard as a criticism of them. Get that wrong in
+week one and nothing else in this document matters.</p>
+<h3 id="standards--2-earn-the-right-before-asking-for-anything"><a class="anchor" href="#standards--2-earn-the-right-before-asking-for-anything" aria-label="Link to this section">#</a>2. Earn the right before asking for anything</h3>
+<p>I would not introduce a single standard in week one. I would fix something that hurts
+them.</p>
+<p>Ask: <em>what pages you at night, what do you dread deploying, what does support ask you
+about every week?</em> Then fix that, visibly, and let someone else present it.</p>
+<p>In this codebase it is obvious — nobody wants to touch checkout, and deploys are
+frightening. Week 1 makes deploys boring and rollbacks real
+(<a href="#migration--2-week-1--stop-the-bleeding-build-the-instruments">migration plan §2</a>).
+That buys the standing to say &quot;here&#39;s how I&#39;d like us to write tests&quot;, and it means
+the first standard arrives attached to a thing that already worked.</p>
+<p><strong>Order matters more than content here.</strong> Standards first, then benefits: you are a
+new person with rules. Benefit first, then standards: you are the person who fixed
+deploys, describing how.</p>
+<h3 id="standards--3-show-it-then-hand-it-over"><a class="anchor" href="#standards--3-show-it-then-hand-it-over" aria-label="Link to this section">#</a>3. Show it, then hand it over</h3>
+<ul>
+<li><strong>First one, I do it.</strong> In public, small PRs, narrating the reasoning. The
+<a href="#refactor">checkout refactor</a> is that artefact — the argument made in working
+code rather than in a document.</li>
+<li><strong>Second one, we pair.</strong> They drive.</li>
+<li><strong>Third one, they do it and I review.</strong> Scheduled in
+<a href="#migration--week-4--hand-it-over">week 4</a>, not left to happen.</li>
+<li><strong>Fourth one, someone else reviews it.</strong></li>
+</ul>
+<p>By the fourth, the pattern is theirs. If it only works when I do it, it is not a
+pattern, it is a preference — and their difficulty is my documentation failing, not
+their attention.</p>
+<h3 id="standards--4-make-the-right-thing-the-easy-thing"><a class="anchor" href="#standards--4-make-the-right-thing-the-easy-thing" aria-label="Link to this section">#</a>4. Make the right thing the easy thing</h3>
+<p>Every standard that depends on discipline will decay. Encode it:</p>
+<ul>
+<li>Formatter on save and on commit. Formatting arguments end permanently, and nobody
+has to be the person who cares about semicolons.</li>
+<li>Lint autofix in the pre-commit hook.</li>
+<li>Secret scanning in the hook, so the failure happens before the push.</li>
+<li><code>npm run new:route</code> scaffolds route + service + repository + test in the house style.
+The lazy path becomes the correct path.</li>
+<li>PR template with the definition of done as checkboxes.</li>
+<li><strong>Architecture rules as failing tests, not review comments.</strong> Nobody has to be the
+person who says &quot;this belongs in a service&quot; for the fifth time — CI says it, in
+eleven seconds, with no interpersonal cost.</li>
+</ul>
+<p>That last point is underrated as a <em>social</em> mechanism. The most corrosive thing about
+introducing standards is turning a colleague into the person who nags. Automation moves
+the friction from between two people to between a person and a machine, and machines
+do not get resented for long.</p>
+<h3 id="standards--5-ratchet-never-retrofit"><a class="anchor" href="#standards--5-ratchet-never-retrofit" aria-label="Link to this section">#</a>5. Ratchet, never retrofit</h3>
+<p><strong>New code complies. Existing code complies when you touch it. Nobody stops to clean.</strong></p>
+<p>No quality sprints. A quality sprint teaches the team that quality is a special
+activity requiring permission, and it is the first thing cancelled when a customer
+escalates.</p>
+<p>Concretely: the linter ignores <code>code/legacy/</code>, and files leave that list as they are
+migrated. The exclusion list is a scoreboard that shrinks every week and never grows.
+Rules apply to the diff, not to the repository.</p>
+<p>Same for the test-coverage ratchet: it may not go down. There is no target.</p>
+<h3 id="standards--6-one-rule-at-a-time-with-an-expiry-date"><a class="anchor" href="#standards--6-one-rule-at-a-time-with-an-expiry-date" aria-label="Link to this section">#</a>6. One rule at a time, with an expiry date</h3>
+<p>Never a document. One rule, at a retro, with a sunset:</p>
+<blockquote>
+<p><em>&quot;For the next two weeks, no PR over 400 lines. At the retro we decide whether to
+keep it. If it is making things worse, we drop it and I will not bring it back.&quot;</em></p>
+</blockquote>
+<p>The trial period is what makes people willing to try, and meaning it is what makes the
+second proposal land. <strong>A rule I refuse to drop after a bad trial costs me every
+future rule.</strong></p>
+<p>Order for this team: (1) CI must be green to merge — nobody argues with that;
+(2) bug fixes ship with a reproducing test; (3) small PRs; (4) architecture boundaries,
+by which point they are already writing that way from the migration work.</p>
+<h3 id="standards--7-every-rule-names-the-incident-it-prevents"><a class="anchor" href="#standards--7-every-rule-names-the-incident-it-prevents" aria-label="Link to this section">#</a>7. Every rule names the incident it prevents</h3>
+<p>&quot;No SQL in handlers&quot; is abstract and sounds like taste.</p>
+<p>&quot;On 14 March we sold two bottles we did not have, because the stock check and the
+stock write were separate statements in a route handler. That is why the transaction
+boundary lives in the service&quot; is not arguable, and it is remembered.</p>
+<p>Write the standards doc with the incident attached to each rule. Where there is no
+incident yet, say so honestly — some rules are precautionary and deserve less weight
+than the ones written in blood. Being honest about which is which is what makes the
+blood-written ones credible.</p>
+<h3 id="standards--8-give-away-ownership-of-everything-you-can"><a class="anchor" href="#standards--8-give-away-ownership-of-everything-you-can" aria-label="Link to this section">#</a>8. Give away ownership of everything you can</h3>
+<p>I write the first draft. The team edits it. Where the change is taste, it goes in
+unchanged — <strong>the point is not that the draft was right, it is that the document
+becomes theirs.</strong></p>
+<p>Where it is one of the four safety items, I say so plainly: <em>&quot;this one I&#39;m not moving
+on, and here&#39;s why.&quot;</em> Being visibly flexible on eight things is what makes
+inflexibility on four read as judgement rather than ego.</p>
+<p>Then hand out ownership: someone owns the CI pipeline, someone owns the runbooks,
+someone owns dependency updates. People defend what they own and comply with what they
+are told, and the first is durable.</p>
+<h3 id="standards--9-handling-the-author-of-the-code"><a class="anchor" href="#standards--9-handling-the-author-of-the-code" aria-label="Link to this section">#</a>9. Handling the author of the code</h3>
+<p>They are usually the most resistant and the most valuable person in the room.</p>
+<ul>
+<li>Never criticise the code in a group setting. Ever.</li>
+<li>Ask them why, genuinely. <code>POST /db/sql</code> was added under deadline pressure to
+unblock a launch. That is a reasonable decision that outlived its context, and
+hearing the story usually reveals a constraint you did not know about.</li>
+<li>Frame it as a change in requirements, not a verdict: <em>this code got the company to
+40,000 orders a month; the thing that gets it to 400,000 looks different.</em> True, and
+it makes the past a success rather than a mistake.</li>
+<li>Make them co-author of the standards. Their name on it converts the most effective
+potential blocker into the most effective advocate.</li>
+<li>Credit them publicly for the parts that were right. There always are some.</li>
+</ul>
+<h3 id="standards--10-measure-it-publish-it-let-it-argue-for-you"><a class="anchor" href="#standards--10-measure-it-publish-it-let-it-argue-for-you" aria-label="Link to this section">#</a>10. Measure it, publish it, let it argue for you</h3>
+<p>Monthly, on a wall, no commentary:</p>
+<div class="table-wrap"><table><thead><tr><th>Metric</th><th>Why this one</th></tr></thead><tbody><tr><td>Deploy frequency</td><td>Goes up when people stop being afraid</td></tr><tr><td>Lead time, commit to production</td><td>Measures the pipeline, not the people</td></tr><tr><td>Change failure rate</td><td>The one that justifies the tests</td></tr><tr><td>Time to restore</td><td>The one that justifies the rollback work</td></tr><tr><td><strong>Hours per week on unplanned work</strong></td><td>The one non-engineers understand instantly</td></tr></tbody></table></div>
+<p>That last row is the argument. When it drops from twelve hours to three, nobody has to
+be persuaded that the standards are worth it, and — more importantly — nobody has to
+be persuaded by <em>me</em>. The graph makes the case, monthly, without a meeting.</p>
+<p>Publish honestly, including the months it gets worse. A metric only ever shown when
+flattering is recognised as marketing within two months, and then it is worthless.</p>
+<h3 id="standards--11-when-it-still-does-not-work"><a class="anchor" href="#standards--11-when-it-still-does-not-work" aria-label="Link to this section">#</a>11. When it still does not work</h3>
+<p>Sequence, in order, and skipping steps is the usual mistake:</p>
+<ol>
+<li><strong>Is it easy to comply?</strong> If the standard needs discipline, that is my bug. Fix the
+tooling.</li>
+<li><strong>Is the why published, with the incident?</strong> If not, publish it.</li>
+<li><strong>Is it actually a good rule?</strong> Sometimes the resistant person is right. Ask them to
+propose a better version — often they do, and then they own it.</li>
+<li><strong>Is one person consistently bypassing an agreed rule?</strong> Private conversation.
+Understand it. Usually it is time pressure or a disagreement never voiced.</li>
+<li><strong>Still happening?</strong> It is a management conversation about working agreements, not a
+tooling problem — but only after 1 to 4, and only for the four non-negotiables.
+Escalating over formatting is how you lose a team.</li>
+</ol>
+<h3 id="standards--12-anti-patterns-i-would-avoid"><a class="anchor" href="#standards--12-anti-patterns-i-would-avoid" aria-label="Link to this section">#</a>12. Anti-patterns I would avoid</h3>
+<ul>
+<li>Introducing more than three changes at once</li>
+<li>A quality sprint</li>
+<li>A coverage mandate</li>
+<li>Shaming in code review, or letting anyone else do it</li>
+<li>Rules without automation</li>
+<li>Standards that arrive before any delivered value</li>
+<li>Rewriting to make the standards easier to apply</li>
+<li>Presenting standards as best practice. <strong>Nothing is adopted because it is best
+practice. Things are adopted because they solve a problem the team already has.</strong></li>
+</ul>
+<h3 id="standards--13-what-success-looks-like"><a class="anchor" href="#standards--13-what-success-looks-like" aria-label="Link to this section">#</a>13. What success looks like</h3>
+<p>Not compliance. Compliance is what you get when people are being watched.</p>
+<p>Success is a PR from someone who did not attend any of these conversations that has a
+reproducing test, is under 400 lines, and puts the pricing rule in the domain — because
+that is how it is done here. And, six months after I leave, the standards having
+changed in ways I would not have chosen, still enforced.</p>
+<p>The measure of this work is whether it survives me. A standard that needs its author
+present is a preference with a nicer name.</p>
+<hr>
+<p><strong>Back to:</strong> <a href="#assessment">Assessment</a> · <a href="#migration">Migration plan</a> ·
+<a href="#refactor">Refactor</a></p>
+</article>
+    </section>
+    <footer class="site-foot">
+      <p class="credit">Built for <a href="https://digitalheroesco.com" target="_blank" rel="noopener">Digital Heroes Training Task</a></p>
+      <p class="credit-sub">Assessment, migration plan, refactor and standards &mdash; with runnable before/after code.</p>
+    </footer>
+  </main>
+</div>
+
+<script>
+(function () {
+  var panels = [].slice.call(document.querySelectorAll('[data-panel]'));
+  var navItems = [].slice.call(document.querySelectorAll('.nav-item'));
+  var ids = panels.map(function (p) { return p.dataset.panel; });
+
+  function show(id, anchor) {
+    if (ids.indexOf(id) === -1) id = 'overview';
+    panels.forEach(function (p) { p.hidden = p.dataset.panel !== id; });
+    navItems.forEach(function (n) { n.classList.toggle('active', n.dataset.target === id); });
+    document.querySelectorAll('.toc-sub').forEach(function (t) {
+      t.classList.toggle('open', t.dataset.doc === id);
+    });
+
+    if (anchor) {
+      var el = document.getElementById(anchor);
+      if (el) { el.scrollIntoView(); return; }
+    }
+    window.scrollTo(0, 0);
+  }
+
+  function fromHash() {
+    var hash = location.hash.replace('#', '');
+    if (!hash) return show('overview');
+    var docId = hash.split('--')[0];
+    show(docId, hash.indexOf('--') > -1 ? hash : null);
+  }
+
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+
+  // Highlight the section currently in view.
+  var headings = [].slice.call(document.querySelectorAll('.prose h2[id]'));
+  if ('IntersectionObserver' in window && headings.length) {
+    var seen = new Set();
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) seen.add(e.target.id); else seen.delete(e.target.id);
+      });
+      document.querySelectorAll('.toc-sub a').forEach(function (a) {
+        a.classList.toggle('here', seen.has(a.getAttribute('href').slice(1)));
+      });
+    }, { rootMargin: '-70px 0px -72% 0px' });
+    headings.forEach(function (h) { observer.observe(h); });
+  }
+
+  // Theme: system by default, overridable, remembered.
+  var root = document.documentElement;
+  var stored = null;
+  try { stored = localStorage.getItem('theme'); } catch (e) {}
+  if (stored) root.setAttribute('data-theme', stored);
+
+  document.querySelector('.theme').addEventListener('click', function () {
+    var systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var current = root.getAttribute('data-theme') || (systemDark ? 'dark' : 'light');
+    var next = current === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('theme', next); } catch (e) {}
+  });
+}());
+</script>
+</body>
+</html>

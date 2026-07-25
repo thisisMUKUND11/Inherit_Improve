@@ -1,0 +1,16 @@
+{
+  "_comment": "FABRICATED CREDENTIALS. Every value in this file is invented for the exercise. This file exists to demonstrate the 'secrets in the repo' problem and is deliberately committed. See docs/01-assessment.md, issue SEC-1. The payment key below is deliberately malformed so that GitHub's push protection does not block this repository -- which it did, on the first attempt, with a well-formed fake. That is push protection doing exactly its job.",
+  "dbPath": "./data/shop.db",
+  "port": 3001,
+  "adminKey": "orderdesk-admin-2019",
+  "jwtSecret": "changeme",
+  "smtp": {
+    "host": "smtp.mailtrap.example",
+    "user": "orderdesk",
+    "pass": "Summer2019!"
+  },
+  "payments": {
+    "provider": "stripe",
+    "secretKey": "sk_live_EXAMPLE_ONLY_not_a_real_key"
+  }
+}

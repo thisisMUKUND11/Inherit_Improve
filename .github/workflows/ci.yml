@@ -1,0 +1,74 @@
+name: CI
+
+# Runs on every push and every pull request. The point is not the badge: it is
+# that "did I break checkout" stops being a question anybody has to answer from
+# memory. Before this pipeline existed, the answer was "deploy and watch".
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history, so the secret scan can look at what was committed
+          # before as well as what is being committed now.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Fastest first. A pipeline that takes eleven minutes to tell you about a
+      # missing semicolon is a pipeline people learn to push past.
+      - name: Secret scan
+        run: npm run secrets:scan
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit and architecture tests
+        run: npm run test:unit
+
+      # The contract suite runs against BOTH the inherited system and the
+      # refactored one. While both are in production behind a flag, a change
+      # that breaks either is a change that cannot ship.
+      - name: Contract tests (legacy and refactored)
+        run: npm run test:contract
+
+      - name: Intended-differences tests
+        run: npm run test:differences
+
+      # The site is generated from docs/*.md, and the build fails on a broken
+      # cross-document anchor. Publishing a dead link is a defect like any other.
+      - name: Build the site (and check its internal links)
+        run: npm run site:build
+
+  # Kept separate and non-blocking on purpose. A vulnerability in a transitive
+  # dependency is real work, and it is not a reason to stop the team from
+  # shipping a checkout fix this afternoon. It opens a ticket; it does not
+  # block the queue.
+  audit:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm audit --audit-level=high

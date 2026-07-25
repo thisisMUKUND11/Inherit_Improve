@@ -1,0 +1,30 @@
+{
+  "name": "inherit-and-improve",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "description": "Inherit and improve: assessment, phased migration plan, and a working before/after refactor of an inherited production codebase.",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "start:legacy": "node --experimental-sqlite code/legacy/server.js",
+    "start:refactored": "node --experimental-sqlite code/refactored/src/main.js",
+    "migrate": "node --experimental-sqlite code/refactored/src/db/migrate.js",
+    "test": "npm run test:unit && npm run test:contract && npm run test:differences",
+    "test:contract": "node --experimental-sqlite --test \"code/test/contract/*.test.js\"",
+    "test:unit": "node --experimental-sqlite --test \"code/test/unit/*.test.js\"",
+    "test:differences": "node --experimental-sqlite --test \"code/test/differences/*.test.js\"",
+    "lint": "eslint code",
+    "secrets:scan": "node code/tools/scan-secrets.js",
+    "site:build": "node site/build.js",
+    "verify": "npm run secrets:scan && npm run lint && npm test && npm run site:build"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "eslint": "^9.9.0",
+    "marked": "^18.0.7"
+  }
+}

@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OrderDesk Storefront (legacy)</title>
+<style>
+  body { font: 15px/1.5 system-ui, sans-serif; max-width: 780px; margin: 40px auto; padding: 0 20px; }
+  .warn { background: #fff4f4; border: 1px solid #e8b4b4; border-radius: 8px; padding: 12px 16px; }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+  td, th { text-align: left; padding: 6px 10px; border-bottom: 1px solid #eee; }
+  button { padding: 6px 12px; }
+  pre { background: #f6f6f6; padding: 12px; overflow-x: auto; }
+</style>
+</head>
+<body>
+<h1>OrderDesk <small>(legacy storefront)</small></h1>
+
+<p class="warn"><strong>This page is part of the exercise.</strong> It is the
+"direct database calls from the frontend" problem, running. The product list
+below is fetched by sending a SQL string from your browser to
+<code>POST /db/sql</code>. Open devtools and look at the network tab.</p>
+
+<h2>Products</h2>
+<table id="products"><thead><tr><th>Product</th><th>Price</th><th>Stock</th><th>Cost price</th><th>Supplier</th></tr></thead><tbody></tbody></table>
+
+<h2>Cart</h2>
+<p>2 x Cold Brew Bottle &nbsp; <input id="coupon" placeholder="coupon code" value="FLAT50"></p>
+<button onclick="quote()">Get quote</button>
+<button onclick="order()">Place order</button>
+<pre id="out">-</pre>
+
+<script>
+// The admin key is in the client bundle. Anyone who views source has it.
+const ADMIN_KEY = 'orderdesk-admin-2019';
+
+// The browser composes SQL. The server runs it. Nothing stops a visitor from
+// editing this string in the console.
+async function sql(query) {
+  const r = await fetch('/db/sql', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ sql: query }),
+  });
+  return r.json();
+}
+
+async function load() {
+  const rows = await sql('SELECT id, name, price, stock, cost_price, supplier FROM products ORDER BY id');
+  document.querySelector('#products tbody').innerHTML = rows.map(function (p) {
+    return '<tr><td>' + p.name + '</td><td>' + p.price + '</td><td>' + p.stock +
+           '</td><td>' + p.cost_price + '</td><td>' + p.supplier + '</td></tr>';
+  }).join('');
+}
+
+const CART = { items: [{ productId: 2, qty: 2 }] };
+
+async function quote() {
+  const r = await fetch('/api/quote', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ items: CART.items, coupon: document.getElementById('coupon').value }),
+  });
+  document.getElementById('out').textContent = 'QUOTE  ' + JSON.stringify(await r.json(), null, 2);
+}
+
+async function order() {
+  const r = await fetch('/api/orders', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      email: 'customer@example.com',
+      items: CART.items,
+      coupon: document.getElementById('coupon').value,
+      card: { number: '4242424242424242', cvc: '123' },
+    }),
+  });
+  document.getElementById('out').textContent = 'CHARGED  ' + JSON.stringify(await r.json(), null, 2);
+}
+
+load();
+</script>
+</body>
+</html>
