@@ -5,7 +5,7 @@
 > route handlers, direct database calls from the frontend, secrets in the repo. It
 > serves real customers and cannot go down.
 
-**Live site:** _add your deployed URL here_
+**Live site: [inherit-improve.vercel.app](https://inherit-improve.vercel.app/)**
 
 Four written deliverables, and — because a claim about code is worth more when the code
 runs — **both systems are in this repository, both boot, and the same test suite runs
