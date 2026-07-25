@@ -18,10 +18,10 @@ const OUT = path.join(__dirname, 'index.html');
 const REPO = 'https://github.com/thisisMUKUND11/Inherit_Improve';
 
 const DOCS = [
-  { id: 'assessment', file: '01-assessment.md', label: 'Assessment', num: 'a', weight: 30, blurb: 'What to fix, in what order, and the risk of leaving each thing alone' },
-  { id: 'migration', file: '02-migration-plan.md', label: 'Migration plan', num: 'b', weight: 25, blurb: 'Week 1, month 1, quarter 1 — no big-bang rewrite, no downtime' },
-  { id: 'refactor', file: '03-refactor.md', label: 'Refactor', num: 'c', weight: 25, blurb: 'One real handler, before and after, with the tests that made it safe' },
-  { id: 'standards', file: '04-standards.md', label: 'Standards', num: 'd', weight: 20, blurb: 'What to introduce, and how to get a resistant team to adopt it' },
+  { id: 'assessment', file: '01-assessment.md', label: 'Assessment', num: 'a', blurb: 'What to fix, in what order, and the risk of leaving each thing alone' },
+  { id: 'migration', file: '02-migration-plan.md', label: 'Migration plan', num: 'b', blurb: 'Week 1, month 1, quarter 1 — no big-bang rewrite, no downtime' },
+  { id: 'refactor', file: '03-refactor.md', label: 'Refactor', num: 'c', blurb: 'One real handler, before and after, with the tests that made it safe' },
+  { id: 'standards', file: '04-standards.md', label: 'Standards', num: 'd', blurb: 'What to introduce, and how to get a resistant team to adopt it' },
 ];
 
 marked.setOptions({ mangle: false, headerIds: false });
@@ -135,7 +135,6 @@ function overview(stats) {
     ${DOCS.map((d) => `
     <a class="card" href="#${d.id}">
       <span class="card-num">${d.num}</span>
-      <span class="card-weight">${d.weight} pts</span>
       <h3>${d.label}</h3>
       <p>${d.blurb}</p>
     </a>`).join('')}
@@ -186,7 +185,6 @@ function build() {
     <section class="panel" id="panel-overview" data-panel="overview">${overview(stats)}</section>
     ${rendered.map((d) => `
     <section class="panel" id="panel-${d.id}" data-panel="${d.id}" hidden>
-      <p class="doc-kicker">Deliverable ${d.num} &middot; ${d.weight} points</p>
       <article class="prose">${d.html}</article>
     </section>`).join('')}`;
 
@@ -363,12 +361,11 @@ main{min-width:0;padding:0 0 80px}
 .stat em{font-style:italic}
 
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px;margin:0 0 38px}
-.card{position:relative;display:block;text-decoration:none;background:var(--panel);
+.card{display:block;text-decoration:none;background:var(--panel);
   border:1px solid var(--line);border-radius:11px;padding:20px 18px 18px;transition:border-color .14s,transform .14s}
 .card:hover{border-color:var(--accent);transform:translateY(-2px)}
 .card-num{font-family:var(--mono);font-size:11.5px;color:var(--accent);font-weight:700;
   text-transform:uppercase;letter-spacing:.06em}
-.card-weight{position:absolute;top:18px;right:16px;font-size:11.5px;color:var(--faint);font-family:var(--mono)}
 .card h3{font-size:17px;margin:8px 0 6px;letter-spacing:-.011em;font-weight:620}
 .card p{margin:0;font-size:13.6px;color:var(--muted);line-height:1.5}
 
@@ -383,8 +380,6 @@ main{min-width:0;padding:0 0 80px}
   padding:4px 9px;border-radius:5px}
 
 /* prose ----------------------------------------------------------------- */
-.doc-kicker{font-family:var(--mono);font-size:11.5px;text-transform:uppercase;letter-spacing:.09em;
-  color:var(--accent);margin:0 0 4px;font-weight:600}
 .prose{font-size:16.4px;line-height:1.72}
 .prose h1{font-family:var(--serif);font-size:clamp(31px,4.6vw,42px);line-height:1.1;letter-spacing:-.018em;
   margin:6px 0 26px;font-weight:600}

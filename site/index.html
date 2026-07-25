@@ -104,12 +104,11 @@ main{min-width:0;padding:0 0 80px}
 .stat em{font-style:italic}
 
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px;margin:0 0 38px}
-.card{position:relative;display:block;text-decoration:none;background:var(--panel);
+.card{display:block;text-decoration:none;background:var(--panel);
   border:1px solid var(--line);border-radius:11px;padding:20px 18px 18px;transition:border-color .14s,transform .14s}
 .card:hover{border-color:var(--accent);transform:translateY(-2px)}
 .card-num{font-family:var(--mono);font-size:11.5px;color:var(--accent);font-weight:700;
   text-transform:uppercase;letter-spacing:.06em}
-.card-weight{position:absolute;top:18px;right:16px;font-size:11.5px;color:var(--faint);font-family:var(--mono)}
 .card h3{font-size:17px;margin:8px 0 6px;letter-spacing:-.011em;font-weight:620}
 .card p{margin:0;font-size:13.6px;color:var(--muted);line-height:1.5}
 
@@ -124,8 +123,6 @@ main{min-width:0;padding:0 0 80px}
   padding:4px 9px;border-radius:5px}
 
 /* prose ----------------------------------------------------------------- */
-.doc-kicker{font-family:var(--mono);font-size:11.5px;text-transform:uppercase;letter-spacing:.09em;
-  color:var(--accent);margin:0 0 4px;font-weight:600}
 .prose{font-size:16.4px;line-height:1.72}
 .prose h1{font-family:var(--serif);font-size:clamp(31px,4.6vw,42px);line-height:1.1;letter-spacing:-.018em;
   margin:6px 0 26px;font-weight:600}
@@ -268,25 +265,21 @@ main{min-width:0;padding:0 0 80px}
     
     <a class="card" href="#assessment">
       <span class="card-num">a</span>
-      <span class="card-weight">30 pts</span>
       <h3>Assessment</h3>
       <p>What to fix, in what order, and the risk of leaving each thing alone</p>
     </a>
     <a class="card" href="#migration">
       <span class="card-num">b</span>
-      <span class="card-weight">25 pts</span>
       <h3>Migration plan</h3>
       <p>Week 1, month 1, quarter 1 — no big-bang rewrite, no downtime</p>
     </a>
     <a class="card" href="#refactor">
       <span class="card-num">c</span>
-      <span class="card-weight">25 pts</span>
       <h3>Refactor</h3>
       <p>One real handler, before and after, with the tests that made it safe</p>
     </a>
     <a class="card" href="#standards">
       <span class="card-num">d</span>
-      <span class="card-weight">20 pts</span>
       <h3>Standards</h3>
       <p>What to introduce, and how to get a resistant team to adopt it</p>
     </a>
@@ -312,7 +305,6 @@ main{min-width:0;padding:0 0 80px}
 </header></section>
     
     <section class="panel" id="panel-assessment" data-panel="assessment" hidden>
-      <p class="doc-kicker">Deliverable a &middot; 30 points</p>
       <article class="prose"><h1 id="assessment--assessment--orderdesk"><a class="anchor" href="#assessment--assessment--orderdesk" aria-label="Link to this section">#</a>Assessment — OrderDesk</h1>
 <p><strong>What this is:</strong> an engineering assessment of an inherited production system, the
 order in which I would fix it, and what it costs to leave each thing alone.</p>
@@ -547,7 +539,6 @@ more than 10 minutes.</li>
 </article>
     </section>
     <section class="panel" id="panel-migration" data-panel="migration" hidden>
-      <p class="doc-kicker">Deliverable b &middot; 25 points</p>
       <article class="prose"><h1 id="migration--migration-plan--orderdesk"><a class="anchor" href="#migration--migration-plan--orderdesk" aria-label="Link to this section">#</a>Migration plan — OrderDesk</h1>
 <p>A phased plan to get from the system described in the <a href="#assessment">assessment</a>
 to a maintainable one, without a rewrite, without a freeze, and without an outage.</p>
@@ -847,7 +838,6 @@ two, the answer is a reference rather than an argument.</p>
 </article>
     </section>
     <section class="panel" id="panel-refactor" data-panel="refactor" hidden>
-      <p class="doc-kicker">Deliverable c &middot; 25 points</p>
       <article class="prose"><h1 id="refactor--refactor--the-checkout-handler"><a class="anchor" href="#refactor--refactor--the-checkout-handler" aria-label="Link to this section">#</a>Refactor — the checkout handler</h1>
 <p>One endpoint, taken from the inherited code to the target structure, with the tests
 that made it safe and the defects it removes.</p>
@@ -1144,7 +1134,6 @@ that never removes the old code leaves two systems instead of one.</p>
 </article>
     </section>
     <section class="panel" id="panel-standards" data-panel="standards" hidden>
-      <p class="doc-kicker">Deliverable d &middot; 20 points</p>
       <article class="prose"><h1 id="standards--engineering-standards--orderdesk"><a class="anchor" href="#standards--engineering-standards--orderdesk" aria-label="Link to this section">#</a>Engineering standards — OrderDesk</h1>
 <p>What I would introduce, and how I would get a team that did not ask for any of it to
 actually use it.</p>
