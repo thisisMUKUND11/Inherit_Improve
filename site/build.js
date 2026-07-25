@@ -15,7 +15,7 @@ const { marked } = require('marked');
 
 const ROOT = path.resolve(__dirname, '..');
 const OUT = path.join(__dirname, 'index.html');
-const REPO = 'https://github.com/thisisMUKUND11/inherit-and-improve';
+const REPO = 'https://github.com/thisisMUKUND11/Inherit_Improve';
 
 const DOCS = [
   { id: 'assessment', file: '01-assessment.md', label: 'Assessment', num: 'a', weight: 30, blurb: 'What to fix, in what order, and the risk of leaving each thing alone' },

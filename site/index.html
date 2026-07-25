@@ -413,7 +413,7 @@ and order history, and <code>DROP TABLE</code> is spelled the same way it always
 is also sitting in the page source. Leaving it: total data compromise, on a timescale
 set by whoever looks first. This is a two-day fix — two read endpoints the storefront
 already needs — and until it ships, nothing else on this list matters.
-→ <em>Demonstrated in <a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/test/differences/intended-differences.test.js" target="_blank" rel="noopener" class="ext"><code>intended-differences.test.js</code></a>
+→ <em>Demonstrated in <a href="https://github.com/thisisMUKUND11/Inherit_Improve/blob/main/code/test/differences/intended-differences.test.js" target="_blank" rel="noopener" class="ext"><code>intended-differences.test.js</code></a>
 under <code>SEC-2</code>.</em></p>
 <p><strong>OBS-1 — Nothing is watched.</strong>
 No error tracker, no structured logs, no uptime check, no alert. Outages are reported
@@ -592,11 +592,11 @@ admin key. <strong>Rotate first, tidy later</strong> — new values into the sec
 revoked at the provider. That is what ends the exposure.</li>
 <li>Move configuration to environment variables with startup validation, so a missing
 value is a boot failure with a clear message instead of <code>undefined</code> reaching the
-payment provider. → <a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/refactored/src/config/env.js" target="_blank" rel="noopener" class="ext"><code>config/env.js</code></a></li>
+payment provider. → <a href="https://github.com/thisisMUKUND11/Inherit_Improve/blob/main/code/refactored/src/config/env.js" target="_blank" rel="noopener" class="ext"><code>config/env.js</code></a></li>
 <li>Pull the provider access logs for the exposure window and look for use from
 addresses we do not recognise. Assume compromise until the logs say otherwise.</li>
 <li>Add <code>gitleaks</code> to CI and to a pre-commit hook. CI alone is too late: by the time CI
-runs, the secret is pushed. → <a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/tools/scan-secrets.js" target="_blank" rel="noopener" class="ext"><code>scan-secrets.js</code></a></li>
+runs, the secret is pushed. → <a href="https://github.com/thisisMUKUND11/Inherit_Improve/blob/main/code/tools/scan-secrets.js" target="_blank" rel="noopener" class="ext"><code>scan-secrets.js</code></a></li>
 <li>Schedule the history scrub (<code>git-filter-repo</code>) for the weekend. It rewrites every
 hash and needs everyone to re-clone, so it waits for a quiet moment. It is also
 optional — rotation is the fix.</li>
@@ -617,7 +617,7 @@ back&quot; is the first question anyone will ask.</li>
 <li>Error tracking (Sentry or equivalent), wired to a channel a human reads.</li>
 <li>Structured JSON request logs with a request id, <strong>and redaction on the way out</strong> —
 the denylist is applied centrally, not remembered at each call site. This also
-closes SEC-4. → <a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/refactored/src/observability/logger.js" target="_blank" rel="noopener" class="ext"><code>logger.js</code></a></li>
+closes SEC-4. → <a href="https://github.com/thisisMUKUND11/Inherit_Improve/blob/main/code/refactored/src/observability/logger.js" target="_blank" rel="noopener" class="ext"><code>logger.js</code></a></li>
 <li>One dashboard, four numbers: error rate, p95 latency, <strong>orders per minute</strong>, and
 outbox depth once it exists. Orders per minute is the important one: it is the
 metric that tells you a deploy broke money, and it does it in 60 seconds rather
@@ -642,7 +642,7 @@ internal tool nobody mentioned was using it. Flag deleted on day 5.</em></p>
 <ul>
 <li>CI pipeline: install, secret scan, lint, test. It runs on every push from the first
 day, when there are three tests, because a pipeline introduced later is a pipeline
-people argue about. → <a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/.github/workflows/ci.yml" target="_blank" rel="noopener" class="ext"><code>ci.yml</code></a></li>
+people argue about. → <a href="https://github.com/thisisMUKUND11/Inherit_Improve/blob/main/.github/workflows/ci.yml" target="_blank" rel="noopener" class="ext"><code>ci.yml</code></a></li>
 <li>Branch protection on <code>main</code>: CI green, one review.</li>
 <li>A staging environment that is a real deploy of the same artefact.</li>
 <li>One-command deploy and one-command rollback. <strong>Then roll back a real deploy on
@@ -657,7 +657,7 @@ recorded as it is, including the bits that are wrong.</li>
 test that is deliberately encoding a defect.</li>
 <li>Add the flag mechanism (environment-driven, percentage-based) with no consumers yet.</li>
 </ul>
-<p>→ <a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/test/contract/checkout.contract.test.js" target="_blank" rel="noopener" class="ext"><code>checkout.contract.test.js</code></a></p>
+<p>→ <a href="https://github.com/thisisMUKUND11/Inherit_Improve/blob/main/code/test/contract/checkout.contract.test.js" target="_blank" rel="noopener" class="ext"><code>checkout.contract.test.js</code></a></p>
 <h3 id="migration--week-1-exit-criteria"><a class="anchor" href="#migration--week-1-exit-criteria" aria-label="Link to this section">#</a>Week 1 exit criteria</h3>
 <p>Every one of these is a yes/no that someone can check:</p>
 <ul>
@@ -728,7 +728,7 @@ a running instance of the previous release encounter a schema it cannot handle.<
 <p><em>The wire format does not change here.</em> Responses keep the decimal fields and <strong>gain</strong>
 exact <code>*_minor</code> integers alongside. Clients migrate when they migrate; the decimals get
 deprecated once the access logs show nobody reads them.
-→ <a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/refactored/src/http/dto.js" target="_blank" rel="noopener" class="ext"><code>dto.js</code></a></p>
+→ <a href="https://github.com/thisisMUKUND11/Inherit_Improve/blob/main/code/refactored/src/http/dto.js" target="_blank" rel="noopener" class="ext"><code>dto.js</code></a></p>
 <h3 id="migration--week-34--transactions-stock-and-the-outbox"><a class="anchor" href="#migration--week-34--transactions-stock-and-the-outbox" aria-label="Link to this section">#</a>Week 3–4 — Transactions, stock, and the outbox</h3>
 <ul>
 <li>Wrap the order write and the stock decrements in one transaction.</li>
@@ -831,7 +831,7 @@ a structured error body. Shipped as an opt-in <code>Accept: application/vnd.orde
 header first; the default flips only when the logs show the old shape is unused. Until
 then the new code deliberately returns the old strings and the old statuses, with
 machine-readable codes added beside them.
-→ <a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/refactored/src/domain/errors.js" target="_blank" rel="noopener" class="ext"><code>errors.js</code></a></p>
+→ <a href="https://github.com/thisisMUKUND11/Inherit_Improve/blob/main/code/refactored/src/domain/errors.js" target="_blank" rel="noopener" class="ext"><code>errors.js</code></a></p>
 <hr>
 <h2 id="migration--6-what-could-go-wrong-with-the-plan-itself"><a class="anchor" href="#migration--6-what-could-go-wrong-with-the-plan-itself" aria-label="Link to this section">#</a>6. What could go wrong with the plan itself</h2>
 <div class="table-wrap"><table><thead><tr><th>Risk</th><th>Signal</th><th>Response</th></tr></thead><tbody><tr><td>Shadow diffs never converge</td><td>Still finding new diff classes after a week</td><td>Stop. The rules are not what anyone thinks they are. Get finance to write them down before writing more code.</td></tr><tr><td>Migration time gets eaten by features</td><td>Two sprints with no migration ticket closed</td><td>Escalate with the dashboard, not with a complaint. &quot;Change failure rate went back up&quot; is an argument; &quot;we need more time for tech debt&quot; is not.</td></tr><tr><td>The team does not adopt the pattern</td><td>Second engineer&#39;s extraction looks nothing like the first</td><td>My documentation failed, not their attention. Pair on the third one.</td></tr><tr><td>A canary looks fine and is not</td><td>Diffs are clean but support tickets rise</td><td>Watch support volume as a ramp metric, not just the technical ones.</td></tr><tr><td>I become the single point of knowledge</td><td>Questions all route to me</td><td>The week-4 handover is not optional. If it slips, everything else slips behind it.</td></tr><tr><td>Reconciliation finds pre-existing bad data</td><td>Mismatches during the money backfill that predate us</td><td>Expected. Quarantine and report; do not silently &quot;correct&quot; financial records.</td></tr></tbody></table></div>
@@ -853,7 +853,7 @@ two, the answer is a reference rather than an argument.</p>
 that made it safe and the defects it removes.</p>
 <p>Both versions are in this repository, both run, and the same test suite runs against
 both:</p>
-<div class="table-wrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>Before</strong></td><td><a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/legacy/server.js" target="_blank" rel="noopener" class="ext"><code>code/legacy/server.js</code></a> — <code>POST /api/orders</code>, 109 lines</td></tr><tr><td><strong>After</strong></td><td><a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/refactored/src/" target="_blank" rel="noopener" class="ext"><code>code/refactored/src/</code></a> — route, service, domain, repositories</td></tr><tr><td><strong>Proof it is safe</strong></td><td><a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/test/contract/checkout.contract.test.js" target="_blank" rel="noopener" class="ext"><code>checkout.contract.test.js</code></a> — 24 assertions, identical on both</td></tr><tr><td><strong>Proof it is better</strong></td><td><a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/test/differences/intended-differences.test.js" target="_blank" rel="noopener" class="ext"><code>intended-differences.test.js</code></a> — 17 assertions, each a defect</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>Before</strong></td><td><a href="https://github.com/thisisMUKUND11/Inherit_Improve/blob/main/code/legacy/server.js" target="_blank" rel="noopener" class="ext"><code>code/legacy/server.js</code></a> — <code>POST /api/orders</code>, 109 lines</td></tr><tr><td><strong>After</strong></td><td><a href="https://github.com/thisisMUKUND11/Inherit_Improve/blob/main/code/refactored/src/" target="_blank" rel="noopener" class="ext"><code>code/refactored/src/</code></a> — route, service, domain, repositories</td></tr><tr><td><strong>Proof it is safe</strong></td><td><a href="https://github.com/thisisMUKUND11/Inherit_Improve/blob/main/code/test/contract/checkout.contract.test.js" target="_blank" rel="noopener" class="ext"><code>checkout.contract.test.js</code></a> — 24 assertions, identical on both</td></tr><tr><td><strong>Proof it is better</strong></td><td><a href="https://github.com/thisisMUKUND11/Inherit_Improve/blob/main/code/test/differences/intended-differences.test.js" target="_blank" rel="noopener" class="ext"><code>intended-differences.test.js</code></a> — 17 assertions, each a defect</td></tr></tbody></table></div>
 <pre class="code"><code>npm test
 # tests 45  pass 45  fail 0     unit + architecture
 # tests 24  pass 24  fail 0     contract, run twice: legacy and refactored
@@ -965,7 +965,7 @@ there is no test to tell you whether you broke the other two.</p>
 <hr>
 <h2 id="refactor--3-the-safety-net-before-touching-anything"><a class="anchor" href="#refactor--3-the-safety-net-before-touching-anything" aria-label="Link to this section">#</a>3. The safety net, before touching anything</h2>
 <p>The first commit of this refactor contains no refactoring. It is
-<a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/test/contract/checkout.contract.test.js" target="_blank" rel="noopener" class="ext">24 assertions</a> describing what the
+<a href="https://github.com/thisisMUKUND11/Inherit_Improve/blob/main/code/test/contract/checkout.contract.test.js" target="_blank" rel="noopener" class="ext">24 assertions</a> describing what the
 system does today, written by observing it.</p>
 <p>They are <strong>black box, over HTTP, against the process</strong>. Not a stylistic choice: the
 inherited code has no seams. <code>server.js</code> opens a database at import time and does
@@ -1002,7 +1002,7 @@ attached. Mixing the two is how a &quot;pure refactor&quot; quietly ships a beha
 <p>No arithmetic, no SQL, no <code>try</code>/<code>catch</code>, no branching on business rules. Errors are
 thrown where they are detected and translated once, centrally. A handler that grows a
 fourth responsibility is the review comment.
-→ <a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/refactored/src/http/routes/checkout.routes.js" target="_blank" rel="noopener" class="ext"><code>checkout.routes.js</code></a></p>
+→ <a href="https://github.com/thisisMUKUND11/Inherit_Improve/blob/main/code/refactored/src/http/routes/checkout.routes.js" target="_blank" rel="noopener" class="ext"><code>checkout.routes.js</code></a></p>
 <h3 id="refactor--the-domain--pure-and-the-only-place-prices-are-decided"><a class="anchor" href="#refactor--the-domain--pure-and-the-only-place-prices-are-decided" aria-label="Link to this section">#</a>The domain — pure, and the only place prices are decided</h3>
 <pre class="code" data-lang="js"><code>function priceOrder({ lines, coupon = null, policy }) {
   const pricedLines = lines.map((line) =&gt; {
@@ -1025,8 +1025,8 @@ fourth responsibility is the review comment.
 <p>No database, no express, no clock, no configuration lookup. Everything arrives as an
 argument. Integers throughout — the rounding decision happens once, explicitly, in
 <code>applyBasisPoints</code>, instead of eleven times implicitly in <code>Math.round</code>.
-→ <a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/refactored/src/domain/pricing.js" target="_blank" rel="noopener" class="ext"><code>pricing.js</code></a> ·
-<a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/refactored/src/domain/money.js" target="_blank" rel="noopener" class="ext"><code>money.js</code></a></p>
+→ <a href="https://github.com/thisisMUKUND11/Inherit_Improve/blob/main/code/refactored/src/domain/pricing.js" target="_blank" rel="noopener" class="ext"><code>pricing.js</code></a> ·
+<a href="https://github.com/thisisMUKUND11/Inherit_Improve/blob/main/code/refactored/src/domain/money.js" target="_blank" rel="noopener" class="ext"><code>money.js</code></a></p>
 <h3 id="refactor--the-service--owns-what-is-atomic-with-what"><a class="anchor" href="#refactor--the-service--owns-what-is-atomic-with-what" aria-label="Link to this section">#</a>The service — owns what is atomic with what</h3>
 <pre class="code" data-lang="js"><code>async function placeOrder({ email, items, couponCode }) {
   const { priced, coupon } = await buildPricedOrder({ items, couponCode });
@@ -1054,8 +1054,8 @@ argument. Integers throughout — the rounding decision happens once, explicitly
 <p>Everything that must be all-or-nothing is inside the transaction, and nothing that must
 not be. <code>db.transaction()</code> <strong>throws if its callback returns a promise</strong> — the rule &quot;no
 I/O inside a transaction&quot; is enforced by the code rather than remembered by the author.
-→ <a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/refactored/src/services/checkout.service.js" target="_blank" rel="noopener" class="ext"><code>checkout.service.js</code></a> ·
-<a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/refactored/src/db/connection.js" target="_blank" rel="noopener" class="ext"><code>connection.js</code></a></p>
+→ <a href="https://github.com/thisisMUKUND11/Inherit_Improve/blob/main/code/refactored/src/services/checkout.service.js" target="_blank" rel="noopener" class="ext"><code>checkout.service.js</code></a> ·
+<a href="https://github.com/thisisMUKUND11/Inherit_Improve/blob/main/code/refactored/src/db/connection.js" target="_blank" rel="noopener" class="ext"><code>connection.js</code></a></p>
 <h3 id="refactor--the-repository--the-guard-is-in-the-where-clause"><a class="anchor" href="#refactor--the-repository--the-guard-is-in-the-where-clause" aria-label="Link to this section">#</a>The repository — the guard is in the WHERE clause</h3>
 <pre class="code" data-lang="js"><code>reserveStockInTx(tx, productId, qty) {
   const result = tx.run(
@@ -1067,7 +1067,7 @@ I/O inside a transaction&quot; is enforced by the code rather than remembered by
 <p>The check and the write are one statement the database serialises. This is correct on
 SQLite, on Postgres, and on anything else — it does not depend on the driver being
 synchronous or on the application being single-threaded.
-→ <a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/refactored/src/repositories/product.repo.js" target="_blank" rel="noopener" class="ext"><code>product.repo.js</code></a></p>
+→ <a href="https://github.com/thisisMUKUND11/Inherit_Improve/blob/main/code/refactored/src/repositories/product.repo.js" target="_blank" rel="noopener" class="ext"><code>product.repo.js</code></a></p>
 <hr>
 <h2 id="refactor--5-what-improved"><a class="anchor" href="#refactor--5-what-improved" aria-label="Link to this section">#</a>5. What improved</h2>
 <p>Each row is asserted in the test suite; nothing here is a claim about how the code
@@ -1100,12 +1100,12 @@ two integrations parse that string, and being right is not worth breaking someon
 else&#39;s production at 2am. Every domain error carries both a <code>legacyMessage</code> and a
 machine-readable <code>code</code>; the correct statuses ship behind a versioned <code>Accept</code> header
 and become the default when the logs show the old shape is unused.
-→ <a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/refactored/src/domain/errors.js" target="_blank" rel="noopener" class="ext"><code>errors.js</code></a></p>
+→ <a href="https://github.com/thisisMUKUND11/Inherit_Improve/blob/main/code/refactored/src/domain/errors.js" target="_blank" rel="noopener" class="ext"><code>errors.js</code></a></p>
 <p><strong>Emitting money twice.</strong> Responses carry both the decimal <code>total: 470.82</code> the
 storefront already parses and the exact <code>totalMinor: 47082</code> new clients should use.
 Additive, so no coordinated release with three integrators; the decimals get deprecated
 on evidence rather than on a date.
-→ <a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/refactored/src/http/dto.js" target="_blank" rel="noopener" class="ext"><code>dto.js</code></a></p>
+→ <a href="https://github.com/thisisMUKUND11/Inherit_Improve/blob/main/code/refactored/src/http/dto.js" target="_blank" rel="noopener" class="ext"><code>dto.js</code></a></p>
 <p><strong>Not making the domain clever.</strong> <code>priceOrder</code> is a flat function with six steps and no
 strategy pattern, no rule engine and no plugin registry. It handles two coupon kinds
 because there are two coupon kinds. When a third arrives it will be an <code>if</code>; when the
@@ -1222,7 +1222,7 @@ domain/        pure. no I/O, no clock, no config, no framework</code></pre>
 <li>Errors are domain types; the HTTP mapping lives in exactly one file</li>
 </ul>
 <p><strong>Five of those are executable tests, not review comments:</strong>
-<a href="https://github.com/thisisMUKUND11/inherit-and-improve/blob/main/code/test/unit/architecture.test.js" target="_blank" rel="noopener" class="ext"><code>architecture.test.js</code></a> fails the build on
+<a href="https://github.com/thisisMUKUND11/Inherit_Improve/blob/main/code/test/unit/architecture.test.js" target="_blank" rel="noopener" class="ext"><code>architecture.test.js</code></a> fails the build on
 interpolated SQL, on <code>process.env</code> outside the config module, on <code>domain/</code> importing
 anything external, on an HTTP file importing a repository, and on a route handler over
 20 lines. <code>db.transaction()</code> throws at runtime if its callback returns a promise.</p>
